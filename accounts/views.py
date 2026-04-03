@@ -1,3 +1,5 @@
+from django.http import JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
@@ -83,9 +85,15 @@ def manage_doctors(request):
         doc_today = Visit.objects.filter(doctor=doc, visit_date__date=today).count()
         doc_this_month = Visit.objects.filter(doctor=doc, visit_date__date__gte=this_month_start).count()
         last_visit = Visit.objects.filter(doctor=doc).order_by('-visit_date').first()
+        doc_full_name = doc.username
+        try:
+            doc_full_name = doc.doctor_profile.full_name
+        except DoctorProfile.DoesNotExist:
+            pass
         doctors_data.append({
             'user': doc,
-            'profile': doc_profile,
+            'profile': doc.profile,
+            'full_name': doc_full_name,
             'patient_count': doc_patients,
             'visit_count': doc_visits,
             'today_visits': doc_today,
@@ -184,9 +192,15 @@ def admin_dashboard(request):
         doc_today = Visit.objects.filter(doctor=doc, visit_date__date=today).count()
         doc_this_month = Visit.objects.filter(doctor=doc, visit_date__date__gte=this_month_start).count()
         last_visit = Visit.objects.filter(doctor=doc).order_by('-visit_date').first()
+        doc_full_name = doc.username
+        try:
+            doc_full_name = doc.doctor_profile.full_name
+        except DoctorProfile.DoesNotExist:
+            pass
         doctors_data.append({
             'user': doc,
             'profile': doc.profile,
+            'full_name': doc_full_name,
             'patient_count': doc_patients,
             'visit_count': doc_visits,
             'today_visits': doc_today,
@@ -284,8 +298,7 @@ def add_doctor(request):
         is_active = request.POST.get('is_active') == 'on'
 
         if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already taken. Please choose another.')
-            return render(request, 'accounts/doctor_form.html', {'action': 'Add'})
+            return JsonResponse({'success': False, 'message': 'Username already taken.'})
 
         user = User.objects.create_user(
             username=username,
@@ -299,8 +312,7 @@ def add_doctor(request):
             specialization=specialization,
             phone=phone,
         )
-        messages.success(request, f'Doctor "{full_name}" added successfully.')
-        return redirect('manage_doctors')
+        return JsonResponse({'success': True, 'message': f'Doctor "{full_name}" added successfully.'})
 
     return render(request, 'accounts/doctor_form.html', {'action': 'Add'})
 
@@ -315,9 +327,15 @@ def edit_doctor(request, pk):
 
     if request.method == 'POST':
         full_name = request.POST.get('full_name', '').strip()
+        username = request.POST.get('username', '').strip()
         specialization = request.POST.get('specialization', '').strip()
         phone = request.POST.get('phone', '').strip()
         is_active = request.POST.get('is_active') == 'on'
+
+        if username and username != doctor_user.username:
+            if User.objects.filter(username=username).exclude(pk=pk).exists():
+                return JsonResponse({'success': False, 'message': 'Username already taken.'})
+            doctor_user.username = username
 
         if profile:
             profile.full_name = full_name
@@ -328,8 +346,7 @@ def edit_doctor(request, pk):
         doctor_user.is_active = is_active
         doctor_user.save()
 
-        messages.success(request, f'Doctor "{full_name}" updated successfully.')
-        return redirect('manage_doctors')
+        return JsonResponse({'success': True, 'message': f'Doctor "{full_name}" updated successfully.'})
 
     context = {
         'action': 'Edit',
@@ -353,10 +370,8 @@ def reset_doctor_password(request, pk):
         if new_password:
             doctor_user.set_password(new_password)
             doctor_user.save()
-            messages.success(request, f'Password for "{full_name}" reset successfully.')
-        else:
-            messages.error(request, 'Password cannot be empty.')
-        return redirect('manage_doctors')
+            return JsonResponse({'success': True, 'message': f'Password for "{full_name}" reset successfully.'})
+        return JsonResponse({'success': False, 'message': 'Password cannot be empty.'})
 
     return render(request, 'accounts/reset_password.html', {'doctor_user': doctor_user})
 
@@ -372,8 +387,7 @@ def toggle_doctor_status(request, pk):
         full_name = doctor_user.doctor_profile.full_name
     except DoctorProfile.DoesNotExist:
         pass
-    messages.success(request, f'Doctor "{full_name}" {status}.')
-    return redirect('manage_doctors')
+    return JsonResponse({'success': True, 'message': f'Doctor "{full_name}" {status}.'})
 
 
 @admin_required
@@ -382,11 +396,7 @@ def delete_doctor(request, pk):
     patient_count = Patient.objects.filter(doctor=doctor_user).count()
 
     if patient_count > 0:
-        messages.error(
-            request,
-            f'Cannot delete doctor — they have {patient_count} patient(s). Deactivate them instead.'
-        )
-        return redirect('manage_doctors')
+        return JsonResponse({'success': False, 'message': f'Cannot delete — this doctor has {patient_count} patient(s). Deactivate them instead.'})
 
     if request.method == 'POST':
         full_name = doctor_user.username
@@ -395,8 +405,7 @@ def delete_doctor(request, pk):
         except DoctorProfile.DoesNotExist:
             pass
         doctor_user.delete()
-        messages.success(request, f'Doctor "{full_name}" deleted successfully.')
-        return redirect('manage_doctors')
+        return JsonResponse({'success': True, 'message': f'Doctor "{full_name}" deleted successfully.'})
 
     return render(request, 'accounts/confirm_delete.html', {'doctor_user': doctor_user})
 

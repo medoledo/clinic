@@ -169,8 +169,8 @@
                 <tr>
                     <td class="px-4 py-2">
                         <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">{{ d.profile.full_name|first|upper }}</div>
-                            <span class="text-sm font-medium text-textmain truncate">{{ d.profile.full_name }}</span>
+                            <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">{{ d.full_name|first|upper }}</div>
+                            <span class="text-sm font-medium text-textmain truncate">{{ d.full_name }}</span>
                         </div>
                     </td>
                     <td class="text-center px-3 py-2 text-sm font-semibold">{{ d.patient_count }}</td>
@@ -221,7 +221,7 @@
                     <td class="px-4 py-2 text-xs text-muted">{{ v.doctor.doctor_profile.full_name }}</td>
                     <td class="px-4 py-2 text-xs text-muted max-w-[200px] truncate">{{ v.diagnosis|default:"—" }}</td>
                     <td class="px-4 py-2 text-center text-xs">
-                        {% if v.visitfile_set.count > 0 %}<span class="badge badge-blue !text-[10px]">{{ v.visitfile_set.count }}</span>
+                        {% if v.files.count > 0 %}<span class="badge badge-blue !text-[10px]">{{ v.files.count }}</span>
                         {% else %}<span class="text-muted">—</span>{% endif %}
                     </td>
                 </tr>
