@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Visit Detail — {{ visit.patient.name }} — MediTrack{% endblock %}
+{% block page_title %}Visit Detail{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'patient_detail' visit.patient.pk %}" class="btn btn-secondary">← {{ visit.patient.name }}</a>
+<a href="{% url 'visit_print' visit.pk %}" target="_blank" class="btn btn-secondary">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+    </svg>
+    Print
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Visit header -->
+<div class="card p-5 mb-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <div class="text-muted text-xs font-semibold uppercase tracking-wider mb-0.5">Visit Date</div>
+            <div class="text-xl font-bold text-textmain">{{ visit.visit_date|date:"l, F d, Y" }}</div>
+            <div class="text-muted text-sm">{{ visit.visit_date|date:"g:i A" }}</div>
+        </div>
+        {% if visit.next_checkup_date %}
+        <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 text-sm">
+            <div class="text-blue-600 font-semibold">Next Checkup</div>
+            <div class="text-blue-800 font-bold">{{ visit.next_checkup_date|date:"M d, Y" }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <!-- Main visit fields -->
+    <div class="lg:col-span-2 space-y-4">
+
+        {% if visit.chief_complaint %}
+        <div class="card p-5">
+            <div class="text-xs font-bold text-muted uppercase tracking-wider mb-2">Chief Complaint</div>
+            <p class="text-textmain text-sm leading-relaxed whitespace-pre-wrap">{{ visit.chief_complaint }}</p>
+        </div>
+        {% endif %}
+
+        {% if visit.symptoms %}
+        <div class="card p-5">
+            <div class="text-xs font-bold text-muted uppercase tracking-wider mb-2">Symptoms</div>
+            <p class="text-textmain text-sm leading-relaxed whitespace-pre-wrap">{{ visit.symptoms }}</p>
+        </div>
+        {% endif %}
+
+        {% if visit.diagnosis %}
+        <div class="card p-5 border-l-4 border-primary">
+            <div class="text-xs font-bold text-primary uppercase tracking-wider mb-2">Diagnosis</div>
+            <p class="text-textmain text-sm leading-relaxed whitespace-pre-wrap">{{ visit.diagnosis }}</p>
+        </div>
+        {% endif %}
+
+        {% if visit.treatment %}
+        <div class="card p-5 border-l-4 border-success">
+            <div class="text-xs font-bold text-success uppercase tracking-wider mb-2">Treatment / Prescription</div>
+            <p class="text-textmain text-sm leading-relaxed whitespace-pre-wrap">{{ visit.treatment }}</p>
+        </div>
+        {% endif %}
+
+        {% if visit.doctor_notes %}
+        <div class="card p-5 border-l-4 border-warning bg-amber-50">
+            <div class="text-xs font-bold text-warning uppercase tracking-wider mb-2">🔒 Private Notes</div>
+            <p class="text-textmain text-sm leading-relaxed whitespace-pre-wrap">{{ visit.doctor_notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Vitals sidebar -->
+    <div class="space-y-4">
+        <!-- Vital signs -->
+        {% if visit.temperature or visit.blood_pressure or visit.pulse or visit.weight %}
+        <div class="card p-5">
+            <div class="text-xs font-bold text-muted uppercase tracking-wider mb-3">Vital Signs</div>
+            <div class="space-y-3">
+                {% if visit.temperature %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-muted">🌡 Temperature</span>
+                    <span class="font-bold text-textmain">{{ visit.temperature }}°C</span>
+                </div>
+                {% endif %}
+                {% if visit.blood_pressure %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-muted">💓 Blood Pressure</span>
+                    <span class="font-bold text-textmain">{{ visit.blood_pressure }}</span>
+                </div>
+                {% endif %}
+                {% if visit.pulse %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-muted">❤️ Pulse</span>
+                    <span class="font-bold text-textmain">{{ visit.pulse }} bpm</span>
+                </div>
+                {% endif %}
+                {% if visit.weight %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-muted">⚖️ Weight</span>
+                    <span class="font-bold text-textmain">{{ visit.weight }} kg</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Files -->
+        <div class="card p-5">
+            <div class="text-xs font-bold text-muted uppercase tracking-wider mb-3">Attachments ({{ files|length }})
+            </div>
+
+            {% if images %}
+            <div class="mb-3">
+                <div class="text-xs text-muted font-semibold mb-2">Images</div>
+                <div class="grid grid-cols-2 gap-2">
+                    {% for img in images %}
+                    <div class="relative group">
+                        <img src="{{ img.file.url }}" alt="{{ img.title }}"
+                            class="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity border border-border"
+                            onclick="openLightbox('{{ img.file.url }}')" />
+                        <div
+                            class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 rounded-b-lg truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                            {{ img.title }}
+                        </div>
+                        <form method="POST" action="{% url 'delete_visit_file' img.pk %}"
+                            class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onsubmit="return confirm('Delete this file?')">
+                            {% csrf_token %}
+                            <button type="submit"
+                                class="w-6 h-6 bg-danger text-white rounded-full text-xs flex items-center justify-center hover:bg-red-700">✕</button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if pdfs %}
+            <div class="mb-3">
+                <div class="text-xs text-muted font-semibold mb-2">PDFs</div>
+                {% for pdf in pdfs %}
+                <div class="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg mb-2 group">
+                    <svg class="w-8 h-8 text-danger flex-shrink-0" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-semibold text-textmain truncate">{{ pdf.title }}</div>
+                        <div class="text-xs text-muted">{{ pdf.get_file_type_display }} · {{ pdf.file_size_display }}
+                        </div>
+                    </div>
+                    <a href="{{ pdf.file.url }}" target="_blank"
+                        class="text-primary hover:underline text-xs font-semibold flex-shrink-0">Open</a>
+                    <form method="POST" action="{% url 'delete_visit_file' pdf.pk %}"
+                        onsubmit="return confirm('Delete this file?')">
+                        {% csrf_token %}
+                        <button type="submit" class="text-danger hover:text-red-700 text-xs font-bold ml-1">✕</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if not files %}
+            <p class="text-muted text-sm">No attachments.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

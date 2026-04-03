@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Delete File — MediTrack{% endblock %}
+{% block page_title %}Delete File{% endblock %}
+{% block content %}
+<div class="max-w-md">
+    <div class="card p-6 text-center">
+        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">⚠️</div>
+        <h2 class="font-bold text-lg mb-2">Delete Attachment</h2>
+        <p class="text-muted text-sm mb-5">Delete "<strong>{{ file.title }}</strong>"? This cannot be undone.</p>
+        <form method="POST" class="flex gap-3 justify-center">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <a href="{% url 'visit_detail' file.visit.pk %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

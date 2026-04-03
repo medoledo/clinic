@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Add Visit — {{ patient.name }} — MediTrack{% endblock %}
+{% block page_title %}Add Visit{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'patient_detail' patient.pk %}" class="btn btn-secondary">← {{ patient.name }}</a>
+{% endblock %}
+
+{% block content %}
+<!-- Voice support check -->
+<div id="voice-not-supported"
+    class="hidden mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm font-medium">
+    ⚠️ Voice transcription is not supported in this browser. Please use Chrome or Edge. The form still works normally.
+</div>
+<div id="mic-denied-msg"
+    class="hidden mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm font-medium">
+    🎤 Microphone blocked. Tap the lock icon in your browser address bar and allow microphone.
+</div>
+<div id="voice-network-msg"
+    class="hidden mb-4 p-4 bg-orange-50 border border-orange-200 rounded-xl text-orange-800 text-sm font-medium">
+    📶 Voice requires an internet connection. Please check your connection and try again.
+</div>
+
+<!-- Patient header -->
+<div class="flex items-center gap-4 mb-6">
+    <div class="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg flex-shrink-0
+    {% if patient.gender == 'female' %}bg-pink-100 text-pink-600{% else %}bg-blue-100 text-blue-600{% endif %}">
+        {{ patient.name|first|upper }}
+    </div>
+    <div>
+        <h2 class="text-xl font-bold text-textmain">{{ patient.name }}</h2>
+        <div class="text-sm text-muted">{{ patient.gender|capfirst }}{% if patient.age %} · {{ patient.age }} yrs{%
+            endif %}</div>
+    </div>
+</div>
+
+<!-- Master mic + language toggle -->
+<div class="card p-4 mb-5 flex flex-wrap items-center gap-4">
+    <button type="button" id="master-mic-btn"
+        class="flex items-center gap-3 px-5 py-3 rounded-xl border-2 border-border bg-white hover:border-primary hover:text-primary font-bold text-sm transition-all"
+        title="Ctrl+M">
+        <span id="master-mic-icon">🎤</span>
+        <span id="master-mic-text">Start Recording</span>
+        <!-- Wave animation -->
+        <div id="wave-animation" class="hidden items-center gap-0.5 text-danger h-5">
+            <div class="wave-bar h-3" style="animation-delay:0s"></div>
+            <div class="wave-bar h-4" style="animation-delay:.15s"></div>
+            <div class="wave-bar h-2" style="animation-delay:.3s"></div>
+            <div class="wave-bar h-5" style="animation-delay:.1s"></div>
+            <div class="wave-bar h-3" style="animation-delay:.25s"></div>
+        </div>
+    </button>
+    <!-- Language toggle -->
+    <div class="flex items-center gap-1 border border-border rounded-lg overflow-hidden text-sm font-semibold">
+        <button type="button" id="lang-ar" onclick="setLang('ar-EG')"
+            class="px-4 py-2 bg-primary text-white transition-colors" title="Arabic">AR</button>
+        <button type="button" id="lang-en" onclick="setLang('en-US')"
+            class="px-4 py-2 bg-white text-muted hover:bg-gray-50 transition-colors" title="English">EN</button>
+    </div>
+    <span id="recording-status" class="hidden text-sm text-danger font-semibold">
+        🔴 Recording... tap a field mic to direct speech
+    </span>
+</div>
+
+<!-- Visit Form -->
+<form method="POST" enctype="multipart/form-data" id="visit-form">
+    {% csrf_token %}
+    <input type="hidden" name="patient_id" value="{{ patient.pk }}" />
+
+    <div class="space-y-4">
+        <!-- Visit Date -->
+        <div class="card p-5">
+            <label class="form-label">Visit Date & Time</label>
+            <input name="visit_date" type="datetime-local" class="form-input"
+                value="{{ now|date:'Y-m-d' }}T{{ now|date:'H:i' }}" />
+        </div>
+
+        <!-- Chief Complaint -->
+        <div class="card p-5" data-field="chief_complaint">
+            <div class="flex items-center justify-between mb-2">
+                <label class="form-label">Chief Complaint *</label>
+                <button type="button" class="mic-btn field-mic" data-target="chief_complaint"
+                    title="Record for this field">
+                    🎤
+                </button>
+            </div>
+            <textarea name="chief_complaint" id="chief_complaint" class="form-textarea"
+                placeholder="What brings the patient in today?"
+                required>{{ post.chief_complaint|default:'' }}</textarea>
+        </div>
+
+        <!-- Symptoms -->
+        <div class="card p-5" data-field="symptoms">
+            <div class="flex items-center justify-between mb-2">
+                <label class="form-label">Symptoms</label>
+                <button type="button" class="mic-btn field-mic" data-target="symptoms">🎤</button>
+            </div>
+            <textarea name="symptoms" id="symptoms" class="form-textarea"
+                placeholder="Describe the symptoms...">{{ post.symptoms|default:'' }}</textarea>
+        </div>
+
+        <!-- Diagnosis -->
+        <div class="card p-5" data-field="diagnosis">
+            <div class="flex items-center justify-between mb-2">
+                <label class="form-label">Diagnosis</label>
+                <button type="button" class="mic-btn field-mic" data-target="diagnosis">🎤</button>
+            </div>
+            <textarea name="diagnosis" id="diagnosis" class="form-textarea"
+                placeholder="Doctor's diagnosis...">{{ post.diagnosis|default:'' }}</textarea>
+        </div>
+
+        <!-- Treatment / Prescription -->
+        <div class="card p-5" data-field="treatment">
+            <div class="flex items-center justify-between mb-2">
+                <label class="form-label">Treatment / Prescription</label>
+                <button type="button" class="mic-btn field-mic" data-target="treatment">🎤</button>
+            </div>
+            <textarea name="treatment" id="treatment" class="form-textarea"
+                placeholder="Medications prescribed, procedures done...">{{ post.treatment|default:'' }}</textarea>
+        </div>
+
+        <!-- Vitals Row -->
+        <div class="card p-5">
+            <label class="form-label mb-3">Vital Signs</label>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="text-xs text-muted font-semibold block mb-1">Temperature (°C)</label>
+                    <input name="temperature" type="number" step="0.1" min="30" max="45" class="form-input"
+                        placeholder="37.0" value="{{ post.temperature|default:'' }}" />
+                </div>
+                <div>
+                    <label class="text-xs text-muted font-semibold block mb-1">Blood Pressure</label>
+                    <input name="blood_pressure" type="text" class="form-input" placeholder="120/80"
+                        value="{{ post.blood_pressure|default:'' }}" />
+                </div>
+                <div>
+                    <label class="text-xs text-muted font-semibold block mb-1">Pulse (bpm)</label>
+                    <input name="pulse" type="number" min="30" max="250" class="form-input" placeholder="72"
+                        value="{{ post.pulse|default:'' }}" />
+                </div>
+                <div>
+                    <label class="text-xs text-muted font-semibold block mb-1">Weight (kg)</label>
+                    <input name="weight" type="number" step="0.1" min="1" max="300" class="form-input"
+                        placeholder="70.0" value="{{ post.weight|default:'' }}" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Next Checkup -->
+        <div class="card p-5">
+            <label class="form-label">Next Checkup Date</label>
+            <input name="next_checkup_date" type="date" class="form-input max-w-xs"
+                value="{{ post.next_checkup_date|default:'' }}" />
+        </div>
+
+        <!-- Doctor Notes (Private) -->
+        <div class="card p-5 border-l-4 border-warning" data-field="doctor_notes">
+            <div class="flex items-center justify-between mb-2">
+                <label class="form-label">Doctor Notes <span
+                        class="text-warning text-xs font-normal normal-case">(Private)</span></label>
+                <button type="button" class="mic-btn field-mic" data-target="doctor_notes">🎤</button>
+            </div>
+            <textarea name="doctor_notes" id="doctor_notes" class="form-textarea"
+                placeholder="Private notes — not shared with patient...">{{ post.doctor_notes|default:'' }}</textarea>
+        </div>
+
+        <!-- File Uploads -->
+        <div class="card p-5">
+            <label class="form-label mb-3">Attachments</label>
+            <!-- Drop zone -->
+            <div id="drop-zone"
+                class="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-blue-50 transition-all">
+                <svg class="w-10 h-10 text-muted mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <p class="text-muted font-medium text-sm">Drag & drop files here, or <span
+                        class="text-primary font-semibold">click to browse</span></p>
+                <p class="text-xs text-muted mt-1">JPG, PNG, PDF — Max 10MB each</p>
+                <input type="file" id="file-input" name="visit_files" multiple accept=".jpg,.jpeg,.png,.pdf"
+                    class="hidden" />
+            </div>
+
+            <!-- File list (populated by JS) -->
+            <div id="file-list" class="mt-4 space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- Save Button -->
+    <div class="flex gap-3 mt-6">
+        <button type="button" id="save-visit-btn" onclick="showConfirmModal()" class="btn btn-primary px-8"
+            title="Ctrl+S">
+            <span id="save-text">💾 Save Visit</span>
+            <span id="save-spinner" class="hidden spinner"></span>
+        </button>
+        <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<!-- Confirmation Modal -->
+<div id="confirm-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
+        <h3 class="text-lg font-bold text-textmain mb-2">Save this visit?</h3>
+        <p class="text-muted text-sm mb-1">Patient: <strong class="text-textmain">{{ patient.name }}</strong></p>
+        <p class="text-muted text-sm mb-1">Chief complaint: <strong id="confirm-complaint"
+                class="text-textmain"></strong></p>
+        <p class="text-muted text-sm mb-4">Attachments: <strong id="confirm-files" class="text-textmain">0
+                files</strong></p>
+        <div class="flex gap-3">
+            <button type="button" onclick="submitVisit()" class="btn btn-primary flex-1 justify-center">✓ Save
+                Visit</button>
+            <button type="button" onclick="closeModal()" class="btn btn-secondary flex-1 justify-center">Keep
+                Editing</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/voice.js' %}"></script>
+<script src="{% static 'js/upload.js' %}"></script>
+<script>
+    // ── Draft Auto-save ──
+    const DRAFT_KEY = 'meditrack_visit_draft_{{ patient.pk }}';
+    const formFields = ['chief_complaint', 'symptoms', 'diagnosis', 'treatment', 'doctor_notes'];
+
+    function saveDraft() {
+        const draft = {
+            time: new Date().toISOString(),
+            data: {}
+        };
+        formFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) draft.data[id] = el.value;
+        });
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    }
+
+    function loadDraft() {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (!raw) return;
+        const draft = JSON.parse(raw);
+        const anyFilled = formFields.some(id => draft.data[id]);
+        if (!anyFilled) return;
+        const ago = new Date(draft.time).toLocaleTimeString();
+        if (confirm(`You have an unsaved draft from ${ago}. Restore it?`)) {
+            formFields.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && draft.data[id]) el.value = draft.data[id];
+            });
+        } else {
+            localStorage.removeItem(DRAFT_KEY);
+        }
+    }
+
+    // Auto-save every 30s
+    setInterval(saveDraft, 30000);
+    formFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', saveDraft);
+    });
+
+    window.addEventListener('load', loadDraft);
+
+    // ── Confirm Modal ──
+    function showConfirmModal() {
+        const complaint = document.getElementById('chief_complaint').value.trim();
+        if (!complaint) {
+            alert('Chief complaint is required.');
+            document.getElementById('chief_complaint').focus();
+            return;
+        }
+        const fileCount = document.querySelectorAll('#file-list .file-item').length;
+        document.getElementById('confirm-complaint').textContent = complaint.substring(0, 60) + (complaint.length > 60 ? '...' : '');
+        document.getElementById('confirm-files').textContent = fileCount + ' file' + (fileCount !== 1 ? 's' : '') + ' attached';
+        document.getElementById('confirm-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('confirm-modal').classList.add('hidden');
+    }
+
+    function submitVisit() {
+        closeModal();
+        const btn = document.getElementById('save-visit-btn');
+        btn.disabled = true;
+        document.getElementById('save-text').textContent = 'Saving visit...';
+        document.getElementById('save-spinner').classList.remove('hidden');
+
+        // Try to submit — if offline, save to IndexedDB
+        if (!navigator.onLine) {
+            saveVisitOffline();
+            return;
+        }
+        document.getElementById('visit-form').submit();
+        localStorage.removeItem(DRAFT_KEY);
+    }
+
+    // Called after offline save
+    function saveVisitOffline() {
+        const formData = {};
+        formFields.forEach(id => {
+            const el = document.getElementById(id);
+            formData[id] = el ? el.value : '';
+        });
+        formData.patient_id = '{{ patient.pk }}';
+        formData.patient_name = '{{ patient.name }}';
+        formData.visit_date = document.querySelector('[name=visit_date]').value;
+        formData.blood_pressure = document.querySelector('[name=blood_pressure]').value;
+        formData.temperature = document.querySelector('[name=temperature]').value;
+        formData.pulse = document.querySelector('[name=pulse]').value;
+        formData.weight = document.querySelector('[name=weight]').value;
+        formData.next_checkup_date = document.querySelector('[name=next_checkup_date]').value;
+
+        if (window.offlineDB) {
+            window.offlineDB.saveVisit(formData).then(() => {
+                localStorage.removeItem(DRAFT_KEY);
+                alert('Visit saved locally. Will sync when internet returns.');
+                window.location = '{% url "patient_detail" patient.pk %}';
+            });
+        } else {
+            alert('Could not save offline. Please reconnect and try again.');
+            const btn = document.getElementById('save-visit-btn');
+            btn.disabled = false;
+            document.getElementById('save-text').textContent = '💾 Save Visit';
+            document.getElementById('save-spinner').classList.add('hidden');
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,17 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('patients/', views.patient_list, name='patient_list'),
+    path('patients/add/', views.add_patient, name='add_patient'),
+    path('patients/<int:pk>/', views.patient_detail, name='patient_detail'),
+    path('patients/<int:pk>/edit/', views.edit_patient, name='edit_patient'),
+    path('patients/<int:pk>/add-visit/', views.add_visit, name='add_visit'),
+    path('visits/<int:pk>/', views.visit_detail, name='visit_detail'),
+    path('visits/<int:pk>/print/', views.visit_print, name='visit_print'),
+    path('visits/files/<int:pk>/delete/', views.delete_visit_file, name='delete_visit_file'),
+    path('search-patients/', views.search_patients, name='search_patients'),
+    path('pending-visits/', views.pending_visits, name='pending_visits'),
+    path('sync-offline-visit/', views.sync_offline_visit, name='sync_offline_visit'),
+]
