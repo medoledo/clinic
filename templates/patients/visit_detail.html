@@ -4,14 +4,10 @@
 {% block page_title %}Visit Detail{% endblock %}
 
 {% block top_actions %}
-<a href="{% url 'patient_detail' visit.patient.pk %}" class="btn btn-secondary">← {{ visit.patient.name }}</a>
-<a href="{% url 'visit_print' visit.pk %}" target="_blank" class="btn btn-secondary">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-    </svg>
-    Print
-</a>
+<a href="{% url 'patient_detail' visit.patient.pk %}" class="btn btn-secondary">← Patient</a>
+<a href="{% url 'visit_print' visit.pk %}" target="_blank" class="btn btn-secondary">Print</a>
+<a href="{% url 'edit_visit' visit.pk %}" class="btn btn-primary">Edit Visit</a>
+<button onclick="openDeleteVisitModal({{ visit.pk }})" class="btn btn-danger">Delete Visit</button>
 {% endblock %}
 
 {% block content %}
@@ -125,13 +121,9 @@
                             class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 rounded-b-lg truncate opacity-0 group-hover:opacity-100 transition-opacity">
                             {{ img.title }}
                         </div>
-                        <form method="POST" action="{% url 'delete_visit_file' img.pk %}"
-                            class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onsubmit="return confirm('Delete this file?')">
-                            {% csrf_token %}
-                            <button type="submit"
-                                class="w-6 h-6 bg-danger text-white rounded-full text-xs flex items-center justify-center hover:bg-red-700">✕</button>
-                        </form>
+                                                    onclick="openDeleteFileModal({{ img.pk }}, '{{ img.title|escapejs }}')"
+                            class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 bg-danger text-white rounded-full text-xs flex items-center justify-center hover:bg-red-700"
+                            title="Delete Image">✕</button>
                     </div>
                     {% endfor %}
                 </div>
@@ -155,11 +147,25 @@
                     </div>
                     <a href="{{ pdf.file.url }}" target="_blank"
                         class="text-primary hover:underline text-xs font-semibold flex-shrink-0">Open</a>
-                    <form method="POST" action="{% url 'delete_visit_file' pdf.pk %}"
-                        onsubmit="return confirm('Delete this file?')">
-                        {% csrf_token %}
-                        <button type="submit" class="text-danger hover:text-red-700 text-xs font-bold ml-1">✕</button>
-                    </form>
+                    <button type="button" onclick="openDeleteFileModal({{ pdf.pk }}, '{{ pdf.title|escapejs }}')" class="text-danger hover:text-red-700 text-xs font-bold ml-2">✕</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if links %}
+            <div class="mb-3">
+                <div class="text-xs text-muted font-semibold mb-2">Links</div>
+                {% for link in links %}
+                <div class="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg mb-2 group">
+                    <svg class="w-8 h-8 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-semibold text-textmain truncate">{{ link.title }}</div>
+                    </div>
+                    <a href="{{ link.link_url }}" target="_blank" class="text-blue-600 hover:underline text-xs font-semibold flex-shrink-0">Open Link</a>
+                    <button type="button" onclick="openDeleteFileModal({{ link.pk }}, '{{ link.title|escapejs }}')" class="text-danger hover:text-red-700 text-xs font-bold ml-1">✕</button>
                 </div>
                 {% endfor %}
             </div>
@@ -171,4 +177,115 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Overlay Architecture -->
+<style>
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 100; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
+    .modal-overlay.hidden { display: none; }
+    .modal-content { background: white; border-radius: 12px; padding: 24px; width: 90%; max-width: 512px; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+
+<!-- Delete File Modal -->
+<div id="delete-file-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3 class="text-lg font-bold text-textmain mb-2">Delete File/Link</h3>
+        <p class="text-sm text-muted mb-6">Are you sure you want to delete <strong id="delete-file-name"></strong>?</p>
+        <form method="POST" id="delete-file-form" onsubmit="return false;">
+            {% csrf_token %}
+            <div class="flex gap-3">
+                <button type="button" onclick="submitDeleteFile()" class="btn btn-danger">Delete</button>
+                <button type="button" onclick="closeModals()" class="btn btn-secondary">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Visit Modal -->
+<div id="delete-visit-modal" class="modal-overlay hidden">
+    <div class="modal-content max-w-md">
+        <h3 class="text-lg font-bold text-textmain mb-2">Delete Visit</h3>
+        <p class="text-sm text-danger mb-6">Are you sure you want to completely remove this visit and all attached items? This action cannot be undone.</p>
+        <form method="POST" id="delete-visit-form" onsubmit="return false;">
+            {% csrf_token %}
+            <div class="flex gap-3">
+                <button type="button" onclick="submitDeleteVisit()" class="btn btn-danger">Permanently Delete</button>
+                <button type="button" onclick="closeModals()" class="btn btn-secondary">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+    let currentDeleteFileId = null;
+    let currentDeleteVisitId = null;
+
+    function openDeleteFileModal(pk, title) {
+        currentDeleteFileId = pk;
+        document.getElementById('delete-file-name').textContent = title;
+        document.getElementById('delete-file-modal').classList.remove('hidden');
+    }
+
+    function openDeleteVisitModal(pk) {
+        currentDeleteVisitId = pk;
+        document.getElementById('delete-visit-modal').classList.remove('hidden');
+    }
+
+    function closeModals() {
+        document.getElementById('delete-file-modal').classList.add('hidden');
+        document.getElementById('delete-visit-modal').classList.add('hidden');
+    }
+
+    async function submitDeleteFile() {
+        const form = document.getElementById('delete-file-form');
+        const data = new FormData(form);
+        const btn = form.querySelector('.btn-danger');
+        const oldText = btn.textContent;
+        btn.textContent = 'Deleting...';
+        btn.disabled = true;
+
+        try {
+            await fetch(`/visits/files/${currentDeleteFileId}/delete/`, {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            window.location.reload();
+        } catch (err) {
+            alert('Failed to delete file');
+            btn.textContent = oldText;
+            btn.disabled = false;
+        }
+    }
+
+    async function submitDeleteVisit() {
+        const form = document.getElementById('delete-visit-form');
+        const data = new FormData(form);
+        const btn = form.querySelector('.btn-danger');
+        const oldText = btn.textContent;
+        btn.textContent = 'Deleting...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/visits/${currentDeleteVisitId}/delete/`, {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const result = await res.json();
+            if (result.success) {
+                window.location.href = '{% url "patient_detail" visit.patient.pk %}';
+            } else {
+                alert(result.message);
+                btn.textContent = oldText;
+                btn.disabled = false;
+            }
+        } catch (err) {
+            alert('Error deleting visit.');
+            btn.textContent = oldText;
+            btn.disabled = false;
+        }
+    }
+</script>
 {% endblock %}

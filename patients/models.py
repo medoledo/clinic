@@ -108,7 +108,8 @@ class VisitFile(models.Model):
     doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='visit_files')
     title = models.CharField(max_length=200)
     file_type = models.CharField(max_length=20, choices=FILE_TYPE_CHOICES, default='other')
-    file = models.FileField(upload_to='visit_files/')
+    file = models.FileField(upload_to='visit_files/', blank=True, null=True)
+    link_url = models.URLField(max_length=1000, blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(blank=True, null=True)
 
@@ -122,12 +123,18 @@ class VisitFile(models.Model):
         return f"{self.title} \u2014 {self.visit}"
 
     @property
+    def is_link(self):
+        return bool(self.link_url)
+
+    @property
     def is_image(self):
+        if not self.file: return False
         name = self.file.name.lower()
         return name.endswith(('.jpg', '.jpeg', '.png'))
 
     @property
     def is_pdf(self):
+        if not self.file: return False
         return self.file.name.lower().endswith('.pdf')
 
     @property

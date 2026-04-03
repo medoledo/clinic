@@ -34,43 +34,10 @@ def dashboard(request):
         visit_date__date__lte=today,
     ).count()
 
-    # Last 10 distinct patients seen — annotated to avoid N+1 in template
-    # (.last_visit and .total_visits properties each fire 1 query per patient)
-    recent_visit_rows = (
-        Visit.objects.filter(doctor=doctor)
-        .select_related('patient')
-        .only('patient_id', 'patient__name', 'patient__phone',
-              'patient__gender', 'patient__date_of_birth', 'visit_date')
-        .order_by('-visit_date')[:20]
-    )
-    seen_ids: set = set()
-    recent_patient_ids = []
-    for v in recent_visit_rows:
-        if v.patient_id not in seen_ids:
-            seen_ids.add(v.patient_id)
-            recent_patient_ids.append(v.patient_id)
-        if len(recent_patient_ids) == 10:
-            break
-
-    from django.db.models import Max
-    # Fetch these patients with annotated stats — single query, no per-row extras
-    recent_patients = list(
-        Patient.objects
-        .filter(id__in=recent_patient_ids)
-        .annotate(
-            visit_count=Count('visits'),
-            last_visit_date=Max('visits__visit_date'),
-        )
-    )
-    # Preserve visit recency order
-    order_map = {pid: i for i, pid in enumerate(recent_patient_ids)}
-    recent_patients.sort(key=lambda p: order_map.get(p.id, 99))
-
     context = {
         'total_patients': total_patients,
         'today_visits': today_visits,
         'month_visits': month_visits,
-        'recent_patients': recent_patients,
     }
     return render(request, 'patients/dashboard.html', context)
 
@@ -124,22 +91,38 @@ def patient_list(request):
     if gender_filter in ('male', 'female'):
         qs = qs.filter(gender=gender_filter)
 
-    from django.db.models import Max
-    # Annotate visit_count and last_visit_date ONCE on the queryset so the
-    # template never calls .last_visit/.total_visits per row (eliminates N+1).
-    qs = qs.annotate(
-        visit_count=Count('visits'),
-        last_visit_date=Max('visits__visit_date'),
-    ).order_by('-created_at')
+    # Order first without annotations so pagination count is just a simple COUNT(*)
+    qs = qs.order_by('-created_at')
+    
+    total_patients_count = qs.count()
+    
+    # Optional: total visits for the filtered patients
+    total_visits_count = Visit.objects.filter(patient__in=qs).count()
 
-    paginator = Paginator(qs, 20)
+    paginator = Paginator(qs, 10)  # Changed to 10 for easier visual testing
     page_num = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_num)
+
+    from django.db.models import Max
+    # Re-fetch the paginated subset with annotations to avoid N+1 and heavy grouping on all rows
+    page_ids = [p.id for p in page_obj.object_list]
+    if page_ids:
+        annotated_patients = (
+            Patient.objects.filter(id__in=page_ids)
+            .annotate(
+                visit_count=Count('visits'),
+                last_visit_date=Max('visits__visit_date')
+            )
+        )
+        annotated_map = {p.id: p for p in annotated_patients}
+        page_obj.object_list = [annotated_map[pid] for pid in page_ids if pid in annotated_map]
 
     context = {
         'page_obj': page_obj,
         'query': query,
         'gender_filter': gender_filter,
+        'total_patients_count': total_patients_count,
+        'total_visits_count': total_visits_count,
     }
     return render(request, 'patients/patient_list.html', context)
 
@@ -344,6 +327,29 @@ def add_visit(request, pk):
                 notes=fnotes or None,
             )
 
+        # ── Link uploads ─────────────────────────────────────────────────────
+        link_urls = request.POST.getlist('link_url')
+        link_titles = request.POST.getlist('link_title')
+        link_types = request.POST.getlist('link_type')
+        link_notes = request.POST.getlist('link_notes')
+
+        for i, link in enumerate(link_urls):
+            link = link.strip()
+            if not link: continue
+            title = (link_titles[i] if i < len(link_titles) else '').strip() or 'External Link'
+            ftype = link_types[i] if i < len(link_types) else 'other'
+            if ftype not in valid_file_types: ftype = 'other'
+            fnotes = (link_notes[i] if i < len(link_notes) else '').strip()
+            
+            VisitFile.objects.create(
+                visit=visit,
+                doctor=request.user,
+                title=title,
+                file_type=ftype,
+                link_url=link,
+                notes=fnotes or None,
+            )
+
         for err in file_errors:
             messages.warning(request, err)
 
@@ -352,6 +358,7 @@ def add_visit(request, pk):
 
     context = {
         'patient': patient,
+        'visit': Visit(patient=patient, doctor=request.user),
         'now': timezone.now(),
     }
     return render(request, 'patients/add_visit.html', context)
@@ -375,6 +382,85 @@ def _safe_int(value):
         return None
 
 
+# ─────────────────────────── Edit Visit ───────────────────────────────────────
+
+@doctor_required
+def edit_visit(request, pk):
+    visit = get_object_or_404(Visit, pk=pk, doctor=request.user)
+    patient = visit.patient
+
+    if request.method == 'POST':
+        chief_complaint = request.POST.get('chief_complaint', '').strip()
+        if not chief_complaint:
+            messages.error(request, 'Chief complaint is required.')
+            return render(request, 'patients/add_visit.html', {
+                'patient': patient,
+                'visit': visit,
+                'post': request.POST,
+                'is_edit': True,
+                'now': timezone.now()
+            })
+
+        visit_date_str = request.POST.get('visit_date', '').strip()
+        if visit_date_str:
+            parsed_date = parse_datetime(visit_date_str)
+            if parsed_date: visit.visit_date = parsed_date
+        
+        visit.chief_complaint = chief_complaint
+        visit.symptoms = request.POST.get('symptoms', '').strip() or None
+        visit.diagnosis = request.POST.get('diagnosis', '').strip() or None
+        visit.treatment = request.POST.get('treatment', '').strip() or None
+        visit.blood_pressure = request.POST.get('blood_pressure', '').strip()
+        visit.doctor_notes = request.POST.get('doctor_notes', '').strip() or None
+
+        visit.temperature = _safe_decimal(request.POST.get('temperature'))
+        visit.pulse = _safe_int(request.POST.get('pulse'))
+        visit.weight = _safe_decimal(request.POST.get('weight'))
+
+        ncd = request.POST.get('next_checkup_date', '').strip()
+        visit.next_checkup_date = ncd if ncd else None
+
+        visit.save()
+
+        # Handle new files/links...
+        titles = request.POST.getlist('file_title')
+        file_types = request.POST.getlist('file_type')
+        file_notes_list = request.POST.getlist('file_notes')
+        files = request.FILES.getlist('visit_files')
+
+        valid_file_types = {ft[0] for ft in VisitFile.FILE_TYPE_CHOICES}
+        
+        for i, f in enumerate(files):
+            title = (titles[i] if i < len(titles) else '').strip() or f.name
+            ftype = file_types[i] if i < len(file_types) else 'other'
+            fnotes = (file_notes_list[i] if i < len(file_notes_list) else '').strip()
+            VisitFile.objects.create(visit=visit, doctor=request.user, title=title, file_type=ftype, file=f, notes=fnotes or None)
+
+        link_urls = request.POST.getlist('link_url')
+        link_titles = request.POST.getlist('link_title')
+        link_types = request.POST.getlist('link_type')
+        link_notes = request.POST.getlist('link_notes')
+        offset = len(files)
+
+        for i, link in enumerate(link_urls):
+            link = link.strip()
+            if not link: continue
+            title = (link_titles[i] if i < len(link_titles) else '').strip() or 'External Link'
+            ftype = link_types[i] if i < len(link_types) else 'other'
+            fnotes = (link_notes[i] if i < len(link_notes) else '').strip()
+            VisitFile.objects.create(visit=visit, doctor=request.user, title=title, file_type=ftype, link_url=link, notes=fnotes or None)
+
+        messages.success(request, 'Visit updated successfully.')
+        return redirect('visit_detail', pk=visit.pk)
+
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'is_edit': True,
+        'now': timezone.now(),
+    }
+    return render(request, 'patients/add_visit.html', context)
+
 # ─────────────────────────── Visit Detail ─────────────────────────────────────
 
 @doctor_required
@@ -391,7 +477,8 @@ def visit_detail(request, pk):
         'files': files,
         'images': [f for f in files if f.is_image],
         'pdfs': [f for f in files if f.is_pdf],
-        'other_files': [f for f in files if not f.is_image and not f.is_pdf],
+        'links': [f for f in files if f.is_link],
+        'other_files': [f for f in files if not f.is_image and not f.is_pdf and not f.is_link],
     }
     return render(request, 'patients/visit_detail.html', context)
 
@@ -405,6 +492,17 @@ def visit_print(request, pk):
     )
     return render(request, 'patients/visit_print.html', {'visit': visit})
 
+
+# ─────────────────────────── Delete Visit ─────────────────────────────────────
+
+@doctor_required
+def delete_visit(request, pk):
+    visit = get_object_or_404(Visit, pk=pk, doctor=request.user)
+    patient_pk = visit.patient_id
+    if request.method == 'POST':
+        visit.delete()
+        return JsonResponse({'success': True, 'message': 'Visit deleted successfully.'})
+    return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
 # ─────────────────────────── Delete Visit File ────────────────────────────────
 

@@ -31,12 +31,21 @@
   // ── Language toggle ──
   window.setLang = function (lang) {
     currentLang = lang;
-    document.getElementById('lang-ar').className = lang === 'ar-EG'
-      ? 'px-4 py-2 bg-primary text-white transition-colors'
-      : 'px-4 py-2 bg-white text-muted hover:bg-gray-50 transition-colors';
-    document.getElementById('lang-en').className = lang === 'en-US'
-      ? 'px-4 py-2 bg-primary text-white transition-colors'
-      : 'px-4 py-2 bg-white text-muted hover:bg-gray-50 transition-colors';
+    if (document.getElementById('lang-mix')) {
+      document.getElementById('lang-mix').className = lang === 'ar-EG' 
+        ? 'px-4 py-2 bg-primary text-white transition-colors' 
+        : 'px-4 py-2 bg-white text-muted hover:bg-gray-50 transition-colors';
+    }
+    if (document.getElementById('lang-ar')) {
+      document.getElementById('lang-ar').className = lang === 'ar-SA' 
+        ? 'px-4 py-2 bg-primary text-white transition-colors' 
+        : 'px-4 py-2 bg-white text-muted hover:bg-gray-50 transition-colors';
+    }
+    if (document.getElementById('lang-en')) {
+      document.getElementById('lang-en').className = lang === 'en-US' 
+        ? 'px-4 py-2 bg-primary text-white transition-colors' 
+        : 'px-4 py-2 bg-white text-muted hover:bg-gray-50 transition-colors';
+    }
     if (isRunning && recognition) {
       recognition.lang = lang;
     }

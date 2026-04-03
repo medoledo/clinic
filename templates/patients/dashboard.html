@@ -4,12 +4,6 @@
 {% block page_title %}Doctor Dashboard{% endblock %}
 
 {% block top_actions %}
-<button onclick="openAddPatientModal()" class="btn btn-primary">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-    </svg>
-    Add Patient
-</button>
 {% endblock %}
 
 {% block content %}
@@ -49,62 +43,6 @@
     </div>
 </div>
 
-<!-- Recent Patients -->
-<div class="card">
-    <div class="px-6 py-4 border-b border-border flex items-center justify-between">
-        <h2 class="font-bold text-textmain">Recent Patients</h2>
-        <a href="{% url 'patient_list' %}" class="text-primary text-sm font-semibold hover:underline">View all &#8594;</a>
-    </div>
-    {% if recent_patients %}
-    <ul class="divide-y divide-border">
-        {% for patient in recent_patients %}
-        <li>
-            <div class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors group">
-                <div
-                    class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-primary font-bold flex-shrink-0">
-                    {{ patient.name|first|upper }}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="font-semibold text-textmain text-sm truncate">{{ patient.name }}</div>
-                    <div class="text-xs text-muted">{{ patient.phone|default:"No phone" }} &#183; {{ patient.visit_count }} visit{{ patient.visit_count|pluralize }}{% if patient.age %} &#183; {{ patient.age }} yrs{% endif %}</div>
-                </div>
-                <div class="text-right">
-                    {% if patient.last_visit_date %}
-                    <div class="text-xs text-muted">{{ patient.last_visit_date|date:"M d" }}</div>
-                    {% endif %}
-                </div>
-                <div class="flex gap-1">
-                    <button onclick="openEditPatientModal({{ patient.pk }})" class="p-1 text-muted hover:text-primary" title="Edit">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                    </button>
-                    <button onclick="openDeletePatientModal({{ patient.pk }}, '{{ patient.name|escapejs }}')" class="p-1 text-muted hover:text-danger" title="Delete">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                    <a href="{% url 'patient_detail' patient.pk %}" class="p-1 text-muted hover:text-primary" title="View">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
-                </div>
-            </div>
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <div class="text-center py-12">
-        <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-        <p class="text-muted font-medium mb-3">No patients yet.</p>
-        <button onclick="openAddPatientModal()" class="btn btn-primary">Add Your First Patient</button>
-    </div>
-    {% endif %}
-</div>
 {% endblock %}
 
 {% block extra_js %}

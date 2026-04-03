@@ -123,7 +123,8 @@
         if (parts.length === 2) return parts.pop().split(';').shift();
         return null;
     }
-    const csrfToken = getCookie('csrftoken');
+    const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    const csrfToken = csrfInput ? csrfInput.value : '';
 
     function openModal(id) {
         document.getElementById(id).classList.remove('hidden');
@@ -231,12 +232,19 @@
     function submitDeletePatient(e) {
         e.preventDefault();
         showSpinner('delete-submit-btn', 'delete-submit-text', 'delete-submit-spinner');
+        var form = document.getElementById('delete-patient-form');
+        var data = new FormData(form);
         var pk = document.getElementById('delete-patient-id').value;
 
         fetch('/patients/' + pk + '/delete/', {
             method: 'POST',
-            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
-        }).then(function (r) { return r.json(); })
+            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+            body: data
+        }).then(function (r) {
+            var ct = r.headers.get('content-type');
+            if (ct && ct.includes('application/json')) return r.json();
+            return r.text().then(function (txt) { throw new Error('Server error.'); });
+        })
             .then(function (data) {
                 hideSpinner('delete-submit-btn', 'delete-submit-text', 'delete-submit-spinner', 'Delete');
                 if (data.success) {

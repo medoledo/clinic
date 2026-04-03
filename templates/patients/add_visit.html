@@ -1,7 +1,7 @@
 ﻿{% extends 'base.html' %}
 {% load static %}
 {% block title %}Add Visit &mdash; {{ patient.name }} &mdash; MediTrack{% endblock %}
-{% block page_title %}Add Visit{% endblock %}
+{% block page_title %}{% if is_edit %}Edit Visit{% else %}Add Visit{% endif %}{% endblock %}
 
 {% block top_actions %}
 <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-secondary">&larr; {{ patient.name }}</a>
@@ -54,10 +54,10 @@
     </button>
     <!-- Language toggle -->
     <div class="flex items-center gap-1 border border-border rounded-lg overflow-hidden text-sm font-semibold">
-        <button type="button" id="lang-ar" onclick="setLang('ar-EG')"
-            class="px-4 py-2 bg-primary text-white transition-colors" title="Arabic">AR</button>
         <button type="button" id="lang-en" onclick="setLang('en-US')"
-            class="px-4 py-2 bg-white text-muted hover:bg-gray-50 transition-colors" title="English">EN</button>
+            class="px-4 py-2 bg-primary text-white transition-colors" title="English">EN</button>
+        <button type="button" id="lang-ar" onclick="setLang('ar-SA')"
+            class="px-4 py-2 bg-white text-muted hover:bg-gray-50 transition-colors" title="Arabic">AR</button>
     </div>
     <span id="recording-status" class="hidden text-sm text-danger font-semibold">
         &#9679; Recording... tap a field mic to direct speech
@@ -70,23 +70,23 @@
     <input type="hidden" name="patient_id" value="{{ patient.pk }}" />
 
     <div class="space-y-4">
-        <!-- Visit Date -->
-        <div class="card p-5">
-            <label class="form-label">Visit Date &amp; Time</label>
-            <input name="visit_date" type="datetime-local" class="form-input"
-                value="{{ now|date:'Y-m-d' }}T{{ now|date:'H:i' }}" />
-        </div>
+        <!-- Visit Date & Grid Start -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="card p-5 col-span-1 md:col-span-2">
+                <label class="form-label">Visit Date &amp; Time</label>
+                <input name="visit_date" type="datetime-local" class="form-input md:max-w-sm"
+                    value="{% if is_edit %}{{ visit.visit_date|date:'Y-m-d' }}T{{ visit.visit_date|time:'H:i' }}{% else %}{% if is_edit %}{{ visit.visit_date|date:'Y-m-d' }}T{{ visit.visit_date|time:'H:i' }}{% else %}{{ now|date:'Y-m-d' }}T{{ now|date:'H:i' }}{% endif %}{% endif %}" />
+            </div>
 
         <!-- Chief Complaint -->
         <div class="card p-5" data-field="chief_complaint">
             <div class="flex items-center justify-between mb-2">
-                <label class="form-label">Chief Complaint *</label>
+                <label class="form-label">Chief Complaint</label>
                 <button type="button" class="mic-btn field-mic" data-target="chief_complaint"
                     title="Record for this field">&#127908;</button>
             </div>
-            <textarea name="chief_complaint" id="chief_complaint" class="form-textarea"
-                placeholder="What brings the patient in today?"
-                required>{{ post.chief_complaint|default:'' }}</textarea>
+            <textarea name="chief_complaint" id="chief_complaint" class="form-textarea" rows="3"
+                placeholder="What brings the patient in today?">{{ post.chief_complaint|default:visit.chief_complaint|default:'' }}</textarea>
         </div>
 
         <!-- Symptoms -->
@@ -95,8 +95,8 @@
                 <label class="form-label">Symptoms</label>
                 <button type="button" class="mic-btn field-mic" data-target="symptoms">&#127908;</button>
             </div>
-            <textarea name="symptoms" id="symptoms" class="form-textarea"
-                placeholder="Describe the symptoms...">{{ post.symptoms|default:'' }}</textarea>
+            <textarea name="symptoms" id="symptoms" class="form-textarea" rows="3"
+                placeholder="Describe the symptoms...">{{ post.symptoms|default:visit.symptoms|default:'' }}</textarea>
         </div>
 
         <!-- Diagnosis -->
@@ -105,8 +105,8 @@
                 <label class="form-label">Diagnosis</label>
                 <button type="button" class="mic-btn field-mic" data-target="diagnosis">&#127908;</button>
             </div>
-            <textarea name="diagnosis" id="diagnosis" class="form-textarea"
-                placeholder="Doctor's diagnosis...">{{ post.diagnosis|default:'' }}</textarea>
+            <textarea name="diagnosis" id="diagnosis" class="form-textarea" rows="3"
+                placeholder="Doctor's diagnosis...">{{ post.diagnosis|default:visit.diagnosis|default:'' }}</textarea>
         </div>
 
         <!-- Treatment / Prescription -->
@@ -115,10 +115,11 @@
                 <label class="form-label">Treatment / Prescription</label>
                 <button type="button" class="mic-btn field-mic" data-target="treatment">&#127908;</button>
             </div>
-            <textarea name="treatment" id="treatment" class="form-textarea"
-                placeholder="Medications prescribed, procedures done...">{{ post.treatment|default:'' }}</textarea>
+            <textarea name="treatment" id="treatment" class="form-textarea" rows="3"
+                placeholder="Medications prescribed, procedures done...">{{ post.treatment|default:visit.treatment|default:'' }}</textarea>
         </div>
 
+        </div> <!-- End of textareas grid -->
         <!-- Vitals Row -->
         <div class="card p-5">
             <label class="form-label mb-3">Vital Signs</label>
@@ -126,22 +127,22 @@
                 <div>
                     <label class="text-xs text-muted font-semibold block mb-1">Temperature (&deg;C)</label>
                     <input name="temperature" type="number" step="0.1" min="30" max="45" class="form-input"
-                        placeholder="37.0" value="{{ post.temperature|default:'' }}" />
+                        placeholder="37.0" value="{{ post.temperature|default:visit.temperature|default:'' }}" />
                 </div>
                 <div>
                     <label class="text-xs text-muted font-semibold block mb-1">Blood Pressure</label>
                     <input name="blood_pressure" type="text" class="form-input" placeholder="120/80"
-                        value="{{ post.blood_pressure|default:'' }}" />
+                        value="{{ post.blood_pressure|default:visit.blood_pressure|default:'' }}" />
                 </div>
                 <div>
                     <label class="text-xs text-muted font-semibold block mb-1">Pulse (bpm)</label>
                     <input name="pulse" type="number" min="30" max="250" class="form-input" placeholder="72"
-                        value="{{ post.pulse|default:'' }}" />
+                        value="{{ post.pulse|default:visit.pulse|default:'' }}" />
                 </div>
                 <div>
                     <label class="text-xs text-muted font-semibold block mb-1">Weight (kg)</label>
                     <input name="weight" type="number" step="0.1" min="1" max="300" class="form-input"
-                        placeholder="70.0" value="{{ post.weight|default:'' }}" />
+                        placeholder="70.0" value="{{ post.weight|default:visit.weight|default:'' }}" />
                 </div>
             </div>
         </div>
@@ -150,7 +151,7 @@
         <div class="card p-5">
             <label class="form-label">Next Checkup Date</label>
             <input name="next_checkup_date" type="date" class="form-input max-w-xs"
-                value="{{ post.next_checkup_date|default:'' }}" />
+                value="{{ post.next_checkup_date|default:visit.next_checkup_date|date:'Y-m-d'|default:'' }}" />
         </div>
 
         <!-- Doctor Notes (Private) -->
@@ -160,8 +161,8 @@
                         class="text-warning text-xs font-normal normal-case">(Private)</span></label>
                 <button type="button" class="mic-btn field-mic" data-target="doctor_notes">&#127908;</button>
             </div>
-            <textarea name="doctor_notes" id="doctor_notes" class="form-textarea"
-                placeholder="Private notes &mdash; not shared with patient...">{{ post.doctor_notes|default:'' }}</textarea>
+            <textarea name="doctor_notes" id="doctor_notes" class="form-textarea" rows="3"
+                placeholder="Private notes &mdash; not shared with patient...">{{ post.doctor_notes|default:visit.doctor_notes|default:'' }}</textarea>
         </div>
 
         <!-- File Uploads -->
@@ -183,6 +184,15 @@
 
             <!-- File list (populated by JS) -->
             <div id="file-list" class="mt-4 space-y-3"></div>
+            
+            <!-- External Links Section -->
+            <div class="mt-6 border-t border-border pt-4">
+                <div class="flex items-center justify-between mb-3">
+                    <label class="form-label mb-0">External Links</label>
+                    <button type="button" onclick="addLinkField()" class="btn btn-secondary !py-1 !px-3 !text-xs">+ Add Link</button>
+                </div>
+                <div id="links-container" class="space-y-3"></div>
+            </div>
         </div>
     </div>
 
@@ -190,7 +200,7 @@
     <div class="flex gap-3 mt-6">
         <button type="button" id="save-visit-btn" onclick="showConfirmModal()" class="btn btn-primary px-8"
             title="Ctrl+S">
-            <span id="save-text">&#128190; Save Visit</span>
+            <span id="save-text">&#128190; {% if is_edit %}Save Changes{% else %}Save Visit{% endif %}</span>
             <span id="save-spinner" class="hidden spinner"></span>
         </button>
         <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-secondary">Cancel</a>
@@ -220,6 +230,21 @@
 <script src="{% static 'js/voice.js' %}"></script>
 <script src="{% static 'js/upload.js' %}"></script>
 <script>
+    // ── Links Manager ──
+    function addLinkField() {
+        const container = document.getElementById('links-container');
+        const div = document.createElement('div');
+        div.className = 'flex gap-2 items-start bg-gray-50 p-3 rounded-lg border border-border';
+        div.innerHTML = `
+            <div class="flex-1 space-y-2">
+                <input type="url" name="link_url" placeholder="https://..." class="form-input !py-1.5" required>
+                <input type="text" name="link_title" placeholder="Link Title (e.g. Lab Results)" class="form-input !py-1.5">
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-danger hover:text-red-700 p-2" title="Remove Link">&times;</button>
+        `;
+        container.appendChild(div);
+    }
+
     // ── Draft Auto-save ──
     const DRAFT_KEY = 'meditrack_visit_draft_{{ patient.pk }}';
     const formFields = ['chief_complaint', 'symptoms', 'diagnosis', 'treatment', 'doctor_notes'];
@@ -263,15 +288,34 @@
 
     // ── Confirm Modal ──
     function showConfirmModal() {
-        const complaint = document.getElementById('chief_complaint').value.trim();
-        if (!complaint) {
-            alert('Chief complaint is required.');
-            document.getElementById('chief_complaint').focus();
+        // Validation: At least ONE field or ONE attachment must be present
+        const allDataFields = ['chief_complaint', 'symptoms', 'diagnosis', 'treatment', 'doctor_notes'];
+        const allInputs = ['temperature', 'blood_pressure', 'pulse', 'weight', 'next_checkup_date'];
+        
+        let hasData = false;
+        
+        for (let id of allDataFields) {
+            const el = document.getElementById(id);
+            if (el && el.value.trim()) { hasData = true; break; }
+        }
+        for (let name of allInputs) {
+            const el = document.querySelector(`[name="${name}"]`);
+            if (el && el.value.trim()) { hasData = true; break; }
+        }
+        
+        const fileCount = document.querySelectorAll('#file-list .file-item').length;
+        const linkCount = document.querySelectorAll('input[name="link_url"]').length;
+        
+        if (!hasData && fileCount === 0 && linkCount === 0) {
+            alert('Please fill out at least one field or attach a file/link to save this visit.');
             return;
         }
-        const fileCount = document.querySelectorAll('#file-list .file-item').length;
+
+        const complaint = document.getElementById('chief_complaint')?.value.trim() || '(No complaint specified)';
+        const totalAttachments = fileCount + linkCount;
+        
         document.getElementById('confirm-complaint').textContent = complaint.substring(0, 60) + (complaint.length > 60 ? '...' : '');
-        document.getElementById('confirm-files').textContent = fileCount + ' file' + (fileCount !== 1 ? 's' : '') + ' attached';
+        document.getElementById('confirm-files').textContent = totalAttachments + ' attachment' + (totalAttachments !== 1 ? 's' : '');
         document.getElementById('confirm-modal').classList.remove('hidden');
     }
 

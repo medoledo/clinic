@@ -7,6 +7,18 @@
 {% endblock %}
 
 {% block content %}
+<!-- Analytics Summary -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+    <div class="stat-card !p-4 border-l-4 border-l-primary">
+        <div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Total Patients</div>
+        <div class="text-2xl font-bold text-textmain">{{ total_patients_count }}</div>
+    </div>
+    <div class="stat-card !p-4 border-l-4 border-l-success">
+        <div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Visit Records</div>
+        <div class="text-2xl font-bold text-success">{{ total_visits_count }}</div>
+    </div>
+</div>
+
 <!-- Search & Filter -->
 <div class="card p-4 mb-5">
     <form method="GET" class="flex flex-wrap items-end gap-3">
@@ -131,20 +143,22 @@
     {% endfor %}
 </div>
 
-<!-- Pagination -->
-{% if page_obj.has_other_pages %}
+<!-- Pagination (Always visible for clarity) -->
 <div class="flex items-center justify-center gap-2 mt-6">
     {% if page_obj.has_previous %}
     <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&gender={{ gender_filter }}"
         class="btn btn-secondary !py-2 !px-4">&#8592; Prev</a>
     {% endif %}
-    <span class="text-sm text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    
+    <span class="text-sm text-muted font-medium bg-white border border-border px-4 py-2 rounded-lg shadow-sm">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+    
     {% if page_obj.has_next %}
     <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&gender={{ gender_filter }}"
         class="btn btn-secondary !py-2 !px-4">Next &#8594;</a>
     {% endif %}
 </div>
-{% endif %}
 
 {% else %}
 <div class="card text-center py-16">
@@ -171,7 +185,10 @@
         if (parts.length === 2) return parts.pop().split(';').shift();
         return null;
     }
-    const csrfToken = getCookie('csrftoken');
+    // CSRF_COOKIE_HTTPONLY is True in settings, meaning getCookie('csrftoken') returns null.
+    // We MUST extract it directly from the DOM using the hidden csrf_token inputs scattered in the forms!
+    const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    const csrfToken = csrfInput ? csrfInput.value : '';
 
     function apiFetch(url, formData) {
         return fetch(url, {
@@ -319,12 +336,11 @@
     function submitDeletePatient(e) {
         e.preventDefault();
         showSpinner('delete-submit-btn', 'delete-submit-text', 'delete-submit-spinner');
+        var form = document.getElementById('delete-patient-form');
+        var data = new FormData(form);
         var pk = document.getElementById('delete-patient-id').value;
 
-        fetch('/patients/' + pk + '/delete/', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
-        }).then(function (r) { return r.json(); })
+        apiFetch('/patients/' + pk + '/delete/', data)
             .then(function (data) {
                 hideSpinner('delete-submit-btn', 'delete-submit-text', 'delete-submit-spinner', 'Delete');
                 if (data.success) {
