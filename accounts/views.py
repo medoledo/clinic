@@ -112,26 +112,20 @@ def admin_dashboard(request):
 
     patient_agg = patients_qs.aggregate(
         total=Count('id'),
-        active=Count('id', filter=Q(is_active=True)),
         male=Count('id', filter=Q(gender='male')),
         female=Count('id', filter=Q(gender='female')),
         with_visits=Count('id', filter=Q(visits__isnull=False)),
     )
     total_patients = patient_agg['total']
-    active_patients = patient_agg['active']
-    inactive_patients = total_patients - active_patients
+    active_patients = total_patients  # All patients are considered active since is_active field was removed
+    inactive_patients = 0
     male_patients = patient_agg['male']
     female_patients = patient_agg['female']
     patients_with_visits = patients_qs.annotate(vc=Count('visits')).filter(vc__gt=0).count()
     patients_without_visits = total_patients - patients_with_visits
 
-    # Blood type breakdown — single aggregated query
-    blood_type_qs = patients_qs.values('blood_type').annotate(
-        count=Count('id')
-    ).filter(blood_type__gt='', count__gt=0).order_by('blood_type')
-    blood_type_map = {bt[0]: bt[1] for bt in Patient.BLOOD_TYPE_CHOICES}
-    blood_types = {blood_type_map.get(row['blood_type'], row['blood_type']): row['count']
-                   for row in blood_type_qs}
+    # Blood type breakdown removed — field was deleted in migration 0003
+    blood_types = {}
 
     # Visit stats
     total_visits = visits_qs.count()

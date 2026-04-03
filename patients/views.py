@@ -87,7 +87,7 @@ def search_patients(request):
         # Single query with Q objects instead of Python OR on two querysets
         patients = (
             Patient.objects
-            .filter(doctor=request.user, is_active=True)
+            .filter(doctor=request.user)
             .filter(Q(name__icontains=query) | Q(phone__icontains=query))
             .only('id', 'name', 'phone', 'gender', 'date_of_birth')
             .distinct()[:10]
