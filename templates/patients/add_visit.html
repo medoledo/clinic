@@ -1,25 +1,26 @@
 ﻿{% extends 'base.html' %}
 {% load static %}
-{% block title %}Add Visit â€” {{ patient.name }} â€” MediTrack{% endblock %}
+{% block title %}Add Visit &mdash; {{ patient.name }} &mdash; MediTrack{% endblock %}
 {% block page_title %}Add Visit{% endblock %}
 
 {% block top_actions %}
-<a href="{% url 'patient_detail' patient.pk %}" class="btn btn-secondary">â† {{ patient.name }}</a>
+<a href="{% url 'patient_detail' patient.pk %}" class="btn btn-secondary">&larr; {{ patient.name }}</a>
 {% endblock %}
 
 {% block content %}
 <!-- Voice support check -->
 <div id="voice-not-supported"
     class="hidden mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm font-medium">
-    âš ï¸ Voice transcription is not supported in this browser. Please use Chrome or Edge. The form still works normally.
+    &#9888; Voice transcription is not supported in this browser. Please use Chrome or Edge. The form still works
+    normally.
 </div>
 <div id="mic-denied-msg"
     class="hidden mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm font-medium">
-    ðŸŽ¤ Microphone blocked. Tap the lock icon in your browser address bar and allow microphone.
+    &#127908; Microphone blocked. Tap the lock icon in your browser address bar and allow microphone.
 </div>
 <div id="voice-network-msg"
     class="hidden mb-4 p-4 bg-orange-50 border border-orange-200 rounded-xl text-orange-800 text-sm font-medium">
-    ðŸ“¶ Voice requires an internet connection. Please check your connection and try again.
+    &#128246; Voice requires an internet connection. Please check your connection and try again.
 </div>
 
 <!-- Patient header -->
@@ -30,7 +31,8 @@
     </div>
     <div>
         <h2 class="text-xl font-bold text-textmain">{{ patient.name }}</h2>
-        <div class="text-sm text-muted">{{ patient.gender|capfirst }}{% if patient.age %} Â· {{ patient.age }} yrs{% endif %}</div>
+        <div class="text-sm text-muted">{{ patient.gender|capfirst }}{% if patient.age %} &middot; {{ patient.age }}
+            yrs{% endif %}</div>
     </div>
 </div>
 
@@ -39,7 +41,7 @@
     <button type="button" id="master-mic-btn"
         class="flex items-center gap-3 px-5 py-3 rounded-xl border-2 border-border bg-white hover:border-primary hover:text-primary font-bold text-sm transition-all"
         title="Ctrl+M">
-        <span id="master-mic-icon">ðŸŽ¤</span>
+        <span id="master-mic-icon">&#127908;</span>
         <span id="master-mic-text">Start Recording</span>
         <!-- Wave animation -->
         <div id="wave-animation" class="hidden items-center gap-0.5 text-danger h-5">
@@ -58,7 +60,7 @@
             class="px-4 py-2 bg-white text-muted hover:bg-gray-50 transition-colors" title="English">EN</button>
     </div>
     <span id="recording-status" class="hidden text-sm text-danger font-semibold">
-        ðŸ”´ Recording... tap a field mic to direct speech
+        &#9679; Recording... tap a field mic to direct speech
     </span>
 </div>
 
@@ -70,7 +72,7 @@
     <div class="space-y-4">
         <!-- Visit Date -->
         <div class="card p-5">
-            <label class="form-label">Visit Date & Time</label>
+            <label class="form-label">Visit Date &amp; Time</label>
             <input name="visit_date" type="datetime-local" class="form-input"
                 value="{{ now|date:'Y-m-d' }}T{{ now|date:'H:i' }}" />
         </div>
@@ -80,9 +82,7 @@
             <div class="flex items-center justify-between mb-2">
                 <label class="form-label">Chief Complaint *</label>
                 <button type="button" class="mic-btn field-mic" data-target="chief_complaint"
-                    title="Record for this field">
-                    ðŸŽ¤
-                </button>
+                    title="Record for this field">&#127908;</button>
             </div>
             <textarea name="chief_complaint" id="chief_complaint" class="form-textarea"
                 placeholder="What brings the patient in today?"
@@ -93,7 +93,7 @@
         <div class="card p-5" data-field="symptoms">
             <div class="flex items-center justify-between mb-2">
                 <label class="form-label">Symptoms</label>
-                <button type="button" class="mic-btn field-mic" data-target="symptoms">ðŸŽ¤</button>
+                <button type="button" class="mic-btn field-mic" data-target="symptoms">&#127908;</button>
             </div>
             <textarea name="symptoms" id="symptoms" class="form-textarea"
                 placeholder="Describe the symptoms...">{{ post.symptoms|default:'' }}</textarea>
@@ -103,7 +103,7 @@
         <div class="card p-5" data-field="diagnosis">
             <div class="flex items-center justify-between mb-2">
                 <label class="form-label">Diagnosis</label>
-                <button type="button" class="mic-btn field-mic" data-target="diagnosis">ðŸŽ¤</button>
+                <button type="button" class="mic-btn field-mic" data-target="diagnosis">&#127908;</button>
             </div>
             <textarea name="diagnosis" id="diagnosis" class="form-textarea"
                 placeholder="Doctor's diagnosis...">{{ post.diagnosis|default:'' }}</textarea>
@@ -113,7 +113,7 @@
         <div class="card p-5" data-field="treatment">
             <div class="flex items-center justify-between mb-2">
                 <label class="form-label">Treatment / Prescription</label>
-                <button type="button" class="mic-btn field-mic" data-target="treatment">ðŸŽ¤</button>
+                <button type="button" class="mic-btn field-mic" data-target="treatment">&#127908;</button>
             </div>
             <textarea name="treatment" id="treatment" class="form-textarea"
                 placeholder="Medications prescribed, procedures done...">{{ post.treatment|default:'' }}</textarea>
@@ -124,7 +124,7 @@
             <label class="form-label mb-3">Vital Signs</label>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                    <label class="text-xs text-muted font-semibold block mb-1">Temperature (Â°C)</label>
+                    <label class="text-xs text-muted font-semibold block mb-1">Temperature (&deg;C)</label>
                     <input name="temperature" type="number" step="0.1" min="30" max="45" class="form-input"
                         placeholder="37.0" value="{{ post.temperature|default:'' }}" />
                 </div>
@@ -158,10 +158,10 @@
             <div class="flex items-center justify-between mb-2">
                 <label class="form-label">Doctor Notes <span
                         class="text-warning text-xs font-normal normal-case">(Private)</span></label>
-                <button type="button" class="mic-btn field-mic" data-target="doctor_notes">ðŸŽ¤</button>
+                <button type="button" class="mic-btn field-mic" data-target="doctor_notes">&#127908;</button>
             </div>
             <textarea name="doctor_notes" id="doctor_notes" class="form-textarea"
-                placeholder="Private notes â€” not shared with patient...">{{ post.doctor_notes|default:'' }}</textarea>
+                placeholder="Private notes &mdash; not shared with patient...">{{ post.doctor_notes|default:'' }}</textarea>
         </div>
 
         <!-- File Uploads -->
@@ -174,9 +174,9 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                <p class="text-muted font-medium text-sm">Drag & drop files here, or <span
+                <p class="text-muted font-medium text-sm">Drag &amp; drop files here, or <span
                         class="text-primary font-semibold">click to browse</span></p>
-                <p class="text-xs text-muted mt-1">JPG, PNG, PDF â€” Max 10MB each</p>
+                <p class="text-xs text-muted mt-1">JPG, PNG, PDF &mdash; Max 10MB each</p>
                 <input type="file" id="file-input" name="visit_files" multiple accept=".jpg,.jpeg,.png,.pdf"
                     class="hidden" />
             </div>
@@ -190,7 +190,7 @@
     <div class="flex gap-3 mt-6">
         <button type="button" id="save-visit-btn" onclick="showConfirmModal()" class="btn btn-primary px-8"
             title="Ctrl+S">
-            <span id="save-text">ðŸ’¾ Save Visit</span>
+            <span id="save-text">&#128190; Save Visit</span>
             <span id="save-spinner" class="hidden spinner"></span>
         </button>
         <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-secondary">Cancel</a>
@@ -207,7 +207,7 @@
         <p class="text-muted text-sm mb-4">Attachments: <strong id="confirm-files" class="text-textmain">0
                 files</strong></p>
         <div class="flex gap-3">
-            <button type="button" onclick="submitVisit()" class="btn btn-primary flex-1 justify-center">âœ“ Save
+            <button type="button" onclick="submitVisit()" class="btn btn-primary flex-1 justify-center">&#10003; Save
                 Visit</button>
             <button type="button" onclick="closeModal()" class="btn btn-secondary flex-1 justify-center">Keep
                 Editing</button>
@@ -220,40 +220,39 @@
 <script src="{% static 'js/voice.js' %}"></script>
 <script src="{% static 'js/upload.js' %}"></script>
 <script>
-    // â”€â”€ Draft Auto-save â”€â”€
+    // ── Draft Auto-save ──
     const DRAFT_KEY = 'meditrack_visit_draft_{{ patient.pk }}';
     const formFields = ['chief_complaint', 'symptoms', 'diagnosis', 'treatment', 'doctor_notes'];
 
     function saveDraft() {
-        const draft = {
-            time: new Date().toISOString(),
-            data: {}
-        };
+        const draft = { time: new Date().toISOString(), data: {} };
         formFields.forEach(id => {
             const el = document.getElementById(id);
             if (el) draft.data[id] = el.value;
         });
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) { }
     }
 
     function loadDraft() {
-        const raw = localStorage.getItem(DRAFT_KEY);
-        if (!raw) return;
-        const draft = JSON.parse(raw);
-        const anyFilled = formFields.some(id => draft.data[id]);
-        if (!anyFilled) return;
-        const ago = new Date(draft.time).toLocaleTimeString();
-        if (confirm(`You have an unsaved draft from ${ago}. Restore it?`)) {
-            formFields.forEach(id => {
-                const el = document.getElementById(id);
-                if (el && draft.data[id]) el.value = draft.data[id];
-            });
-        } else {
-            localStorage.removeItem(DRAFT_KEY);
-        }
+        try {
+            const raw = localStorage.getItem(DRAFT_KEY);
+            if (!raw) return;
+            const draft = JSON.parse(raw);
+            const anyFilled = formFields.some(id => draft.data[id]);
+            if (!anyFilled) return;
+            const ago = new Date(draft.time).toLocaleTimeString();
+            if (confirm('You have an unsaved draft from ' + ago + '. Restore it?')) {
+                formFields.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && draft.data[id]) el.value = draft.data[id];
+                });
+            } else {
+                localStorage.removeItem(DRAFT_KEY);
+            }
+        } catch (e) { }
     }
 
-    // Auto-save every 30s
+    // Auto-save every 30s and on input
     setInterval(saveDraft, 30000);
     formFields.forEach(id => {
         const el = document.getElementById(id);
@@ -262,7 +261,7 @@
 
     window.addEventListener('load', loadDraft);
 
-    // â”€â”€ Confirm Modal â”€â”€
+    // ── Confirm Modal ──
     function showConfirmModal() {
         const complaint = document.getElementById('chief_complaint').value.trim();
         if (!complaint) {
@@ -287,16 +286,15 @@
         document.getElementById('save-text').textContent = 'Saving visit...';
         document.getElementById('save-spinner').classList.remove('hidden');
 
-        // Try to submit â€” if offline, save to IndexedDB
+        // If offline, save to IndexedDB; otherwise submit form normally
         if (!navigator.onLine) {
             saveVisitOffline();
             return;
         }
         document.getElementById('visit-form').submit();
-        localStorage.removeItem(DRAFT_KEY);
+        try { localStorage.removeItem(DRAFT_KEY); } catch (e) { }
     }
 
-    // Called after offline save
     function saveVisitOffline() {
         const formData = {};
         formFields.forEach(id => {
@@ -304,7 +302,7 @@
             formData[id] = el ? el.value : '';
         });
         formData.patient_id = '{{ patient.pk }}';
-        formData.patient_name = '{{ patient.name }}';
+        formData.patient_name = '{{ patient.name|escapejs }}';
         formData.visit_date = document.querySelector('[name=visit_date]').value;
         formData.blood_pressure = document.querySelector('[name=blood_pressure]').value;
         formData.temperature = document.querySelector('[name=temperature]').value;
@@ -314,7 +312,7 @@
 
         if (window.offlineDB) {
             window.offlineDB.saveVisit(formData).then(() => {
-                localStorage.removeItem(DRAFT_KEY);
+                try { localStorage.removeItem(DRAFT_KEY); } catch (e) { }
                 alert('Visit saved locally. Will sync when internet returns.');
                 window.location = '{% url "patient_detail" patient.pk %}';
             });
@@ -322,7 +320,7 @@
             alert('Could not save offline. Please reconnect and try again.');
             const btn = document.getElementById('save-visit-btn');
             btn.disabled = false;
-            document.getElementById('save-text').textContent = 'ðŸ’¾ Save Visit';
+            document.getElementById('save-text').textContent = '&#128190; Save Visit';
             document.getElementById('save-spinner').classList.add('hidden');
         }
     }

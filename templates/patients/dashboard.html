@@ -72,10 +72,10 @@
                         patient.age }} yrs{% endif %}</div>
                 </div>
                 <div class="text-right">
-                    {% if patient.last_visit %}
-                    <div class="text-xs text-muted">{{ patient.last_visit.visit_date|date:"M d" }}</div>
+                    {% if patient.last_visit_date %}
+                    <div class="text-xs text-muted">{{ patient.last_visit_date|date:"M d" }}</div>
                     {% endif %}
-                    <div class="text-xs text-muted">{{ patient.total_visits }} visit{{ patient.total_visits|pluralize }}
+                    <div class="text-xs text-muted">{{ patient.visit_count }} visit{{ patient.visit_count|pluralize }}
                     </div>
                 </div>
                 <svg class="w-4 h-4 text-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -39,18 +39,39 @@
                 empty.remove();
                 syncArea.classList.remove('hidden');
                 visits.forEach(v => {
-                    const div = document.createElement('div');
-                    div.className = 'card p-5';
-                    div.innerHTML = `
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <div class="font-bold text-textmain">${v.patient_name || 'Patient #' + v.patient_id}</div>
-              <div class="text-sm text-muted mt-0.5">${v.visit_date ? new Date(v.visit_date).toLocaleString() : 'Unknown date'}</div>
-              <div class="text-sm text-textmain mt-1 line-clamp-2">${v.chief_complaint || ''}</div>
-            </div>
-            <span class="badge badge-warning whitespace-nowrap">⏳ Pending</span>
-          </div>`;
-                    list.appendChild(div);
+                    // Build DOM safely with textContent — never innerHTML with user data (XSS)
+                    const card = document.createElement('div');
+                    card.className = 'card p-5';
+
+                    const row = document.createElement('div');
+                    row.className = 'flex items-start justify-between gap-3';
+
+                    const info = document.createElement('div');
+
+                    const nameEl = document.createElement('div');
+                    nameEl.className = 'font-bold text-textmain';
+                    nameEl.textContent = v.patient_name || ('Patient #' + v.patient_id);
+
+                    const dateEl = document.createElement('div');
+                    dateEl.className = 'text-sm text-muted mt-0.5';
+                    dateEl.textContent = v.visit_date ? new Date(v.visit_date).toLocaleString() : 'Unknown date';
+
+                    const complaintEl = document.createElement('div');
+                    complaintEl.className = 'text-sm text-textmain mt-1 line-clamp-2';
+                    complaintEl.textContent = v.chief_complaint || '';
+
+                    info.appendChild(nameEl);
+                    info.appendChild(dateEl);
+                    info.appendChild(complaintEl);
+
+                    const badge = document.createElement('span');
+                    badge.className = 'badge badge-warning whitespace-nowrap';
+                    badge.textContent = 'Pending';
+
+                    row.appendChild(info);
+                    row.appendChild(badge);
+                    card.appendChild(row);
+                    list.appendChild(card);
                 });
             });
         }

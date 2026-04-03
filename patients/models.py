@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-import datetime
 
 
 class Patient(models.Model):
@@ -28,24 +27,45 @@ class Patient(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            # Covers the common "fetch all patients for a doctor" query
+            models.Index(fields=['doctor', 'is_active'], name='patient_doctor_active_idx'),
+            # Covers ordering + pagination
+            models.Index(fields=['doctor', '-created_at'], name='patient_doctor_created_idx'),
+            # Covers name search
+            models.Index(fields=['name'], name='patient_name_idx'),
+        ]
 
     def __str__(self):
         return self.name
 
     @property
     def age(self):
+        """Returns the patient's age in years, or None if DOB is not set."""
         if self.date_of_birth:
             today = timezone.now().date()
-            delta = today - self.date_of_birth
-            return int(delta.days / 365.25)
+            born = self.date_of_birth
+            return (
+                today.year - born.year
+                - ((today.month, today.day) < (born.month, born.day))
+            )
         return None
 
     @property
     def last_visit(self):
+        """
+        Returns the most recent Visit object for this patient.
+        NOTE: This property hits the DB on every call. Avoid using it inside
+        loops — use prefetch_related('visits') on the queryset instead.
+        """
         return self.visits.order_by('-visit_date').first()
 
     @property
     def total_visits(self):
+        """
+        Returns the total number of visits.
+        NOTE: Avoid calling in loops — use annotate(vc=Count('visits')) instead.
+        """
         return self.visits.count()
 
 
@@ -67,9 +87,17 @@ class Visit(models.Model):
 
     class Meta:
         ordering = ['-visit_date']
+        indexes = [
+            # Covers "all visits for a doctor, ordered by date"
+            models.Index(fields=['doctor', '-visit_date'], name='visit_doctor_date_idx'),
+            # Covers "all visits for a patient, ordered by date"
+            models.Index(fields=['patient', '-visit_date'], name='visit_patient_date_idx'),
+            # Covers date-range analytics queries
+            models.Index(fields=['visit_date'], name='visit_date_idx'),
+        ]
 
     def __str__(self):
-        return f"{self.patient.name} — {self.visit_date.strftime('%Y-%m-%d')}"
+        return f"{self.patient.name} \u2014 {self.visit_date.strftime('%Y-%m-%d')}"
 
     @property
     def has_files(self):
@@ -99,8 +127,14 @@ class VisitFile(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(blank=True, null=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['visit'], name='visitfile_visit_idx'),
+            models.Index(fields=['doctor'], name='visitfile_doctor_idx'),
+        ]
+
     def __str__(self):
-        return f"{self.title} — {self.visit}"
+        return f"{self.title} \u2014 {self.visit}"
 
     @property
     def is_image(self):

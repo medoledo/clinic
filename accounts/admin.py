@@ -29,12 +29,16 @@ class UserAdmin(BaseUserAdmin):
     list_display = ('username', 'email', 'get_role', 'is_active', 'is_staff', 'date_joined')
     list_filter = ('is_active', 'is_staff', 'date_joined')
     search_fields = ('username', 'email', 'first_name', 'last_name')
+    # Prevent full COUNT(*) on large user tables
+    show_full_result_count = False
+    list_select_related = True
 
     def get_role(self, obj):
         try:
             return obj.profile.get_role_display()
         except UserProfile.DoesNotExist:
-            return '—'
+            return '\u2014'
+    get_role.short_description = 'Role'
 
 
 admin.site.unregister(User)
@@ -47,6 +51,8 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_filter = ('role', 'created_at')
     search_fields = ('user__username',)
     readonly_fields = ('created_at',)
+    list_select_related = True
+    show_full_result_count = False
 
 
 @admin.register(DoctorProfile)
@@ -55,9 +61,12 @@ class DoctorProfileAdmin(admin.ModelAdmin):
     list_filter = ('specialization', 'created_at')
     search_fields = ('full_name', 'user__username', 'phone')
     readonly_fields = ('created_at',)
+    list_select_related = True
+    show_full_result_count = False
 
 
 @admin.register(AdminProfile)
 class AdminProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'created_at')
     readonly_fields = ('created_at',)
+    list_select_related = True

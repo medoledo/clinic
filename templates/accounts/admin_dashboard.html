@@ -11,10 +11,12 @@
 <div class="card p-3 mb-4">
     <div class="flex items-center gap-3">
         <label class="form-label !mb-0 !text-xs">Filter:</label>
-        <select class="form-input !py-2 !text-sm w-48" onchange="if(this.value)window.location.href='?doctor_filter='+this.value;else window.location.href='?'">
+        <select class="form-input !py-2 !text-sm w-48"
+            onchange="if(this.value)window.location.href='?doctor_filter='+this.value;else window.location.href='?'">
             <option value="">All Doctors</option>
             {% for doc in all_doctors %}
-            <option value="{{ doc.pk }}" {% if doctor_filter == doc.pk|stringformat:"s" %}selected{% endif %}>{{ doc.doctor_profile.full_name|default:doc.username }}</option>
+            <option value="{{ doc.pk }}" {% if doctor_filter_id == doc.pk %}selected{% endif %}>{{
+                doc.doctor_profile.full_name|default:doc.username }}</option>
             {% endfor %}
         </select>
     </div>
@@ -90,7 +92,8 @@
             <div class="flex justify-between"><span>Week</span><strong>{{ this_week_visits }}</strong></div>
             <div class="flex justify-between"><span>Month</span><strong>{{ this_month_visits }}</strong></div>
             <div class="flex justify-between"><span>Last Month</span><strong>{{ last_month_visits }}</strong></div>
-            <div class="flex justify-between"><span>Growth</span><strong class="{% if visit_growth >= 0 %}text-success{% else %}text-danger{% endif %}">{% if visit_growth >= 0 %}↑{% else %}↓{% endif %}{{ abs_visit_growth }}%</strong></div>
+            <div class="flex justify-between"><span>Growth</span><strong
+                    class="{% if visit_growth >= 0 %}text-success{% else %}text-danger{% endif %}">{% if visit_growth >= 0 %}↑{% else %}↓{% endif %}{{ abs_visit_growth }}%</strong></div>
         </div>
     </div>
     <div class="stat-card !p-3">
@@ -130,7 +133,8 @@
             <thead>
                 <tr class="bg-gray-50">
                     {% for day in daily_breakdown %}
-                    <th class="text-center px-3 py-2 text-[10px] font-semibold text-muted uppercase">{{ day.day_name|slice:":3" }}</th>
+                    <th class="text-center px-3 py-2 text-[10px] font-semibold text-muted uppercase">{{
+                        day.day_name|slice:":3" }}</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -169,15 +173,20 @@
                 <tr>
                     <td class="px-4 py-2">
                         <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">{{ d.full_name|first|upper }}</div>
+                            <div
+                                class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                                {{ d.full_name|first|upper }}</div>
                             <span class="text-sm font-medium text-textmain truncate">{{ d.full_name }}</span>
                         </div>
                     </td>
                     <td class="text-center px-3 py-2 text-sm font-semibold">{{ d.patient_count }}</td>
                     <td class="text-center px-3 py-2 text-sm font-bold">{{ d.visit_count }}</td>
-                    <td class="text-center px-3 py-2 text-sm font-bold {% if d.today_visits > 0 %}text-success{% else %}text-muted{% endif %}">{{ d.today_visits }}</td>
+                    <td
+                        class="text-center px-3 py-2 text-sm font-bold {% if d.today_visits > 0 %}text-success{% else %}text-muted{% endif %}">
+                        {{ d.today_visits }}</td>
                     <td class="text-center px-3 py-2 text-sm font-bold text-primary">{{ d.month_visits }}</td>
-                    <td class="px-3 py-2 text-xs text-muted">{% if d.last_active %}{{ d.last_active|date:"M d" }}{% else %}Never{% endif %}</td>
+                    <td class="px-3 py-2 text-xs text-muted">{% if d.last_active %}{{ d.last_active|date:"M d" }}{% else
+                        %}Never{% endif %}</td>
                     <td class="text-center px-3 py-2">
                         {% if d.user.is_active %}
                         <span class="inline-flex items-center gap-1 text-[10px] font-medium text-green-700">
@@ -218,11 +227,13 @@
                 <tr>
                     <td class="px-4 py-2 text-xs text-muted">{{ v.visit_date|date:"M d g:iA" }}</td>
                     <td class="px-4 py-2 text-sm font-medium text-textmain">{{ v.patient.name }}</td>
-                    <td class="px-4 py-2 text-xs text-muted">{{ v.doctor.doctor_profile.full_name }}</td>
+                    <td class="px-4 py-2 text-xs text-muted">{{
+                        v.doctor.doctor_profile.full_name|default:v.doctor.username }}</td>
                     <td class="px-4 py-2 text-xs text-muted max-w-[200px] truncate">{{ v.diagnosis|default:"—" }}</td>
                     <td class="px-4 py-2 text-center text-xs">
-                        {% if v.files.count > 0 %}<span class="badge badge-blue !text-[10px]">{{ v.files.count }}</span>
-                        {% else %}<span class="text-muted">—</span>{% endif %}
+                        {% with fc=v.files.all|length %}{% if fc > 0 %}<span class="badge badge-blue !text-[10px]">{{ fc
+                            }}</span>
+                        {% else %}<span class="text-muted">&mdash;</span>{% endif %}{% endwith %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -230,7 +241,9 @@
         </table>
     </div>
     {% else %}
-    <div class="text-center py-8"><p class="text-muted text-sm">No visits yet.</p></div>
+    <div class="text-center py-8">
+        <p class="text-muted text-sm">No visits yet.</p>
+    </div>
     {% endif %}
 </div>
 {% endblock %}

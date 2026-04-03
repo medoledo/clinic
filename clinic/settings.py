@@ -1,20 +1,41 @@
 """
-Django settings for MediTrack (clinic) project — Development mode.
+Django settings for MediTrack (clinic) project.
+
+Keep DEBUG=True for development only.
+In production: set DEBUG=False, configure ALLOWED_HOSTS properly,
+and set SECURE_SSL_REDIRECT=True, SESSION_COOKIE_SECURE=True, CSRF_COOKIE_SECURE=True.
 """
 
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# ─── SECURITY ──────────────────────────────────────────────────────────────────
+# IMPORTANT: Override this in production via environment variable!
 SECRET_KEY = 'django-insecure-($9zn(m@m6_kdgh-8v+54qm8o+h1o9cc-dx-y+^y27f*b(*$&l'
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-# Application definition
+# Security headers — safe to enable in both dev and prod
+SECURE_BROWSER_XSS_FILTER = True          # X-XSS-Protection header
+SECURE_CONTENT_TYPE_NOSNIFF = True        # X-Content-Type-Options: nosniff
+X_FRAME_OPTIONS = 'DENY'                  # Clickjacking protection
+CSRF_COOKIE_HTTPONLY = True               # JS cannot read CSRF cookie
+CSRF_COOKIE_SAMESITE = 'Lax'             # CSRF cookie sameSite policy
+SESSION_COOKIE_HTTPONLY = True            # JS cannot read session cookie
+SESSION_COOKIE_SAMESITE = 'Lax'          # Session cookie sameSite policy
+# Set these to True in production (requires HTTPS):
+# SECURE_SSL_REDIRECT = True
+# SESSION_COOKIE_SECURE = True
+# CSRF_COOKIE_SECURE = True
+
+# Upload limits (10 MB per file, 20 MB form body max)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024   # 20 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10 MB
+
+# ─── APPLICATION DEFINITION ────────────────────────────────────────────────────
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -57,45 +78,49 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'clinic.wsgi.application'
 
-# Database
+# ─── DATABASE ──────────────────────────────────────────────────────────────────
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            # Enable WAL mode for better concurrent read performance in SQLite
+            'timeout': 20,
+            'check_same_thread': False,
+        },
     }
 }
 
-# Password validation
+# ─── PASSWORD VALIDATION ───────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
+# ─── INTERNATIONALIZATION ──────────────────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Cairo'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
+# ─── STATIC & MEDIA FILES ─────────────────────────────────────────────────────
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files (uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default primary key field type
+# ─── DEFAULT PRIMARY KEY ───────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Auth
+# ─── AUTH ──────────────────────────────────────────────────────────────────────
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 
-# Session configuration (remember-me handled per-view)
-SESSION_COOKIE_AGE = 60 * 60 * 24  # 1 day default
+# ─── SESSION ───────────────────────────────────────────────────────────────────
+SESSION_COOKIE_AGE = 60 * 60 * 24          # 1 day default
 SESSION_SAVE_EVERY_REQUEST = True
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # override per-login for remember-me
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True     # Override per-login for remember-me

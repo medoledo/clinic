@@ -7,14 +7,22 @@ class VisitFileInline(admin.TabularInline):
     extra = 0
     fields = ('title', 'file_type', 'file', 'uploaded_at')
     readonly_fields = ('uploaded_at',)
+    # Avoid loading full file dropdown on millions of records
+    show_change_link = True
+    max_num = 10
 
 
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
     list_display = ('name', 'doctor', 'phone', 'gender', 'age', 'is_active', 'created_at')
-    list_filter = ('gender', 'blood_type', 'is_active', 'doctor', 'created_at')
+    list_filter = ('gender', 'blood_type', 'is_active', 'created_at')
     search_fields = ('name', 'phone', 'doctor__username')
     readonly_fields = ('created_at',)
+    list_select_related = ('doctor',)
+    show_full_result_count = False
+    list_per_page = 25
+    # Use raw ID field for doctor to avoid loading all users in a dropdown
+    raw_id_fields = ('doctor',)
     fieldsets = (
         ('Personal Info', {
             'fields': ('doctor', 'name', 'phone', 'date_of_birth', 'gender', 'blood_type')
@@ -37,15 +45,21 @@ class VisitInline(admin.TabularInline):
     can_delete = False
     max_num = 5
     show_change_link = True
+    raw_id_fields = ('doctor',)
 
 
 @admin.register(Visit)
 class VisitAdmin(admin.ModelAdmin):
     list_display = ('visit_date', 'patient', 'doctor', 'diagnosis_summary', 'has_files')
-    list_filter = ('visit_date', 'doctor', 'patient__doctor')
+    # Removed 'patient__doctor' from list_filter — it causes a full JOIN scan without index support
+    list_filter = ('visit_date', 'doctor')
     search_fields = ('patient__name', 'doctor__username', 'chief_complaint', 'diagnosis')
     readonly_fields = ('created_at',)
     inlines = (VisitFileInline,)
+    list_select_related = ('patient', 'doctor')
+    show_full_result_count = False
+    list_per_page = 25
+    raw_id_fields = ('patient', 'doctor')
     fieldsets = (
         ('Visit Info', {
             'fields': ('patient', 'doctor', 'visit_date')
@@ -71,6 +85,10 @@ class VisitAdmin(admin.ModelAdmin):
 @admin.register(VisitFile)
 class VisitFileAdmin(admin.ModelAdmin):
     list_display = ('title', 'visit', 'doctor', 'file_type', 'uploaded_at')
-    list_filter = ('file_type', 'uploaded_at', 'doctor')
+    list_filter = ('file_type', 'uploaded_at')
     search_fields = ('title', 'visit__patient__name', 'doctor__username')
     readonly_fields = ('uploaded_at',)
+    list_select_related = ('visit', 'doctor')
+    show_full_result_count = False
+    list_per_page = 25
+    raw_id_fields = ('visit', 'doctor')
