@@ -23,11 +23,7 @@
             <label class="form-label">Username *</label>
             <input name="username" type="text" required
               value="{{ doctor_user.username|default:'' }}" placeholder="drjohnsmith"
-              {% if action == 'Edit' %}readonly{% endif %}
-              class="form-input{% if action == 'Edit' %} bg-gray-50{% endif %}" />
-            {% if action == 'Edit' %}
-            <p class="text-xs text-muted mt-1">Username cannot be changed.</p>
-            {% endif %}
+              class="form-input" />
           </div>
         </div>
         {% if action == 'Add' %}

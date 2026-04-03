@@ -75,25 +75,26 @@ def manage_doctors(request):
     doctors = User.objects.filter(profile__role='doctor').select_related('profile', 'doctor_profile')
     doctors_data = []
     for doc in doctors:
-        doc_profile = None
-        try:
-            doc_profile = doc.doctor_profile
-        except DoctorProfile.DoesNotExist:
-            pass
         doc_patients = Patient.objects.filter(doctor=doc).count()
         doc_visits = Visit.objects.filter(doctor=doc).count()
         doc_today = Visit.objects.filter(doctor=doc, visit_date__date=today).count()
         doc_this_month = Visit.objects.filter(doctor=doc, visit_date__date__gte=this_month_start).count()
         last_visit = Visit.objects.filter(doctor=doc).order_by('-visit_date').first()
         doc_full_name = doc.username
+        doc_spec = ''
+        doc_phone = ''
         try:
-            doc_full_name = doc.doctor_profile.full_name
+            dp = doc.doctor_profile
+            doc_full_name = dp.full_name
+            doc_spec = dp.specialization
+            doc_phone = dp.phone
         except DoctorProfile.DoesNotExist:
             pass
         doctors_data.append({
             'user': doc,
-            'profile': doc.profile,
             'full_name': doc_full_name,
+            'specialization': doc_spec,
+            'phone': doc_phone,
             'patient_count': doc_patients,
             'visit_count': doc_visits,
             'today_visits': doc_today,
