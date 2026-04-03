@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block title %}{{ action }} Doctor — MediTrack{% endblock %}
 {% block page_title %}{{ action }} Doctor{% endblock %}
 
@@ -7,26 +7,28 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-xl">
+<div class="max-w-2xl">
   <div class="card p-6">
     <h2 class="text-lg font-bold text-textmain mb-6">{{ action }} Doctor Account</h2>
     <form method="POST">
       {% csrf_token %}
-      <div class="space-y-4">
-        <div>
-          <label class="form-label">Full Name *</label>
-          <input name="full_name" type="text" required class="form-input"
-            value="{{ profile.full_name|default:'' }}" placeholder="Dr. John Smith" />
-        </div>
-        <div>
-          <label class="form-label">Username *</label>
-          <input name="username" type="text" required
-            value="{{ doctor_user.username|default:'' }}" placeholder="drjohnsmith"
-            {% if action == 'Edit' %}readonly{% endif %}
-            class="form-input{% if action == 'Edit' %} bg-gray-50{% endif %}" />
-          {% if action == 'Edit' %}
-          <p class="text-xs text-muted mt-1">Username cannot be changed after creation.</p>
-          {% endif %}
+      <div class="space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label class="form-label">Full Name *</label>
+            <input name="full_name" type="text" required class="form-input"
+              value="{{ profile.full_name|default:'' }}" placeholder="Dr. John Smith" />
+          </div>
+          <div>
+            <label class="form-label">Username *</label>
+            <input name="username" type="text" required
+              value="{{ doctor_user.username|default:'' }}" placeholder="drjohnsmith"
+              {% if action == 'Edit' %}readonly{% endif %}
+              class="form-input{% if action == 'Edit' %} bg-gray-50{% endif %}" />
+            {% if action == 'Edit' %}
+            <p class="text-xs text-muted mt-1">Username cannot be changed.</p>
+            {% endif %}
+          </div>
         </div>
         {% if action == 'Add' %}
         <div>
@@ -34,17 +36,19 @@
           <input name="password" type="password" required class="form-input" placeholder="Set initial password" />
         </div>
         {% endif %}
-        <div>
-          <label class="form-label">Specialization</label>
-          <input name="specialization" type="text" class="form-input"
-            value="{{ profile.specialization|default:'' }}" placeholder="e.g. General Practice, Cardiology" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label class="form-label">Specialization</label>
+            <input name="specialization" type="text" class="form-input"
+              value="{{ profile.specialization|default:'' }}" placeholder="e.g. General Practice" />
+          </div>
+          <div>
+            <label class="form-label">Phone</label>
+            <input name="phone" type="tel" class="form-input"
+              value="{{ profile.phone|default:'' }}" placeholder="+20 xxx xxx xxxx" />
+          </div>
         </div>
-        <div>
-          <label class="form-label">Phone</label>
-          <input name="phone" type="tel" class="form-input"
-            value="{{ profile.phone|default:'' }}" placeholder="+20 xxx xxx xxxx" />
-        </div>
-        <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
           <input name="is_active" type="checkbox" id="is_active"
             class="w-4 h-4 text-blue-600 rounded cursor-pointer"
             {% if doctor_user.is_active or action == 'Add' %}checked{% endif %} />

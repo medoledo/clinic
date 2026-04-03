@@ -67,7 +67,7 @@
                 </td>
                 <td class="px-6 py-4 text-sm font-semibold text-textmain">{{ patient.total_visits }}</td>
                 <td class="px-6 py-4">
-                    <a href="{% url 'patient_detail' patient.pk %}" class="text-primary text-sm hover:underline font-medium">View →</a>
+                    <a href="{% url 'patient_detail' patient.pk %}" class="text-muted hover:text-primary" title="Details">⋮</a>
                 </td>
             </tr>
             {% endfor %}

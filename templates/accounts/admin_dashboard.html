@@ -3,114 +3,226 @@
 {% block page_title %}Admin Dashboard{% endblock %}
 
 {% block top_actions %}
-<a href="{% url 'add_doctor' %}" class="btn btn-primary">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-    </svg>
-    Add Doctor
-</a>
+<a href="{% url 'manage_doctors' %}" class="btn btn-primary">Manage Doctors</a>
 {% endblock %}
 
 {% block content %}
-<!-- Stats -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-    <div class="stat-card">
-        <div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Total Doctors</div>
-        <div class="text-3xl font-bold text-textmain">{{ total_doctors }}</div>
-        <div class="text-xs text-muted mt-1">Registered</div>
-    </div>
-    <div class="stat-card">
-        <div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Active Doctors</div>
-        <div class="text-3xl font-bold text-success">{{ active_doctors }}</div>
-        <div class="text-xs text-muted mt-1">Currently active</div>
-    </div>
-    <div class="stat-card">
-        <div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Total Patients</div>
-        <div class="text-3xl font-bold text-primary">{{ total_patients }}</div>
-        <div class="text-xs text-muted mt-1">Across all doctors</div>
-    </div>
-    <div class="stat-card">
-        <div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Total Visits</div>
-        <div class="text-3xl font-bold text-warning">{{ total_visits }}</div>
-        <div class="text-xs text-muted mt-1">All time</div>
+<!-- Doctor Filter -->
+<div class="card p-3 mb-4">
+    <div class="flex items-center gap-3">
+        <label class="form-label !mb-0 !text-xs">Filter:</label>
+        <select class="form-input !py-2 !text-sm w-48" onchange="if(this.value)window.location.href='?doctor_filter='+this.value;else window.location.href='?'">
+            <option value="">All Doctors</option>
+            {% for doc in all_doctors %}
+            <option value="{{ doc.pk }}" {% if doctor_filter == doc.pk|stringformat:"s" %}selected{% endif %}>{{ doc.doctor_profile.full_name|default:doc.username }}</option>
+            {% endfor %}
+        </select>
     </div>
 </div>
 
-<!-- Doctors Table -->
-<div class="card">
-    <div class="px-6 py-4 border-b border-border flex items-center justify-between">
-        <h2 class="font-bold text-textmain">Doctors</h2>
-        <a href="{% url 'add_doctor' %}" class="btn btn-primary !py-2 !px-4 !text-xs">+ Add Doctor</a>
+<!-- Overview Stats - Compact -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
+    <div class="stat-card !p-3 text-center">
+        <div class="text-muted text-[10px] font-semibold uppercase">Doctors</div>
+        <div class="text-xl font-bold text-textmain">{{ total_doctors }}</div>
     </div>
+    <div class="stat-card !p-3 text-center">
+        <div class="text-muted text-[10px] font-semibold uppercase">Active</div>
+        <div class="text-xl font-bold text-success">{{ active_doctors }}</div>
+    </div>
+    <div class="stat-card !p-3 text-center">
+        <div class="text-muted text-[10px] font-semibold uppercase">Patients</div>
+        <div class="text-xl font-bold text-primary">{{ total_patients }}</div>
+    </div>
+    <div class="stat-card !p-3 text-center">
+        <div class="text-muted text-[10px] font-semibold uppercase">Visits</div>
+        <div class="text-xl font-bold text-warning">{{ total_visits }}</div>
+    </div>
+    <div class="stat-card !p-3 text-center">
+        <div class="text-muted text-[10px] font-semibold uppercase">Today</div>
+        <div class="text-xl font-bold text-success">{{ today_visits }}</div>
+    </div>
+    <div class="stat-card !p-3 text-center">
+        <div class="text-muted text-[10px] font-semibold uppercase">Avg/Day</div>
+        <div class="text-xl font-bold text-textmain">{{ avg_visits_per_day }}</div>
+    </div>
+</div>
 
-    {% if doctors_data %}
+<!-- Patient Analytics - Compact -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+    <div class="stat-card !p-3">
+        <div class="text-muted text-[10px] font-semibold uppercase mb-2">Patient Gender</div>
+        <div class="flex justify-between text-sm">
+            <span>Male: <strong>{{ male_patients }}</strong></span>
+            <span>Female: <strong>{{ female_patients }}</strong></span>
+        </div>
+    </div>
+    <div class="stat-card !p-3">
+        <div class="text-muted text-[10px] font-semibold uppercase mb-2">Patient Status</div>
+        <div class="flex justify-between text-sm">
+            <span>Active: <strong class="text-success">{{ active_patients }}</strong></span>
+            <span>Inactive: <strong class="text-danger">{{ inactive_patients }}</strong></span>
+        </div>
+    </div>
+    <div class="stat-card !p-3">
+        <div class="text-muted text-[10px] font-semibold uppercase mb-2">With/Without Visits</div>
+        <div class="flex justify-between text-sm">
+            <span>Seen: <strong>{{ patients_with_visits }}</strong></span>
+            <span>New: <strong>{{ patients_without_visits }}</strong></span>
+        </div>
+    </div>
+    <div class="stat-card !p-3">
+        <div class="text-muted text-[10px] font-semibold uppercase mb-2">Blood Types</div>
+        <div class="flex flex-wrap gap-1">
+            {% for bt, count in blood_types.items %}
+            <span class="badge badge-blue !text-[10px]">{{ bt }}:{{ count }}</span>
+            {% endfor %}
+            {% if not blood_types %}<span class="text-muted text-xs">None</span>{% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Visit Analytics - Compact -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+    <div class="stat-card !p-3">
+        <div class="text-muted text-[10px] font-semibold uppercase mb-2">Visit Timeline</div>
+        <div class="space-y-1 text-sm">
+            <div class="flex justify-between"><span>Week</span><strong>{{ this_week_visits }}</strong></div>
+            <div class="flex justify-between"><span>Month</span><strong>{{ this_month_visits }}</strong></div>
+            <div class="flex justify-between"><span>Last Month</span><strong>{{ last_month_visits }}</strong></div>
+            <div class="flex justify-between"><span>Growth</span><strong class="{% if visit_growth >= 0 %}text-success{% else %}text-danger{% endif %}">{% if visit_growth >= 0 %}↑{% else %}↓{% endif %}{{ abs_visit_growth }}%</strong></div>
+        </div>
+    </div>
+    <div class="stat-card !p-3">
+        <div class="text-muted text-[10px] font-semibold uppercase mb-2">Vitals Recorded</div>
+        <div class="space-y-1 text-sm">
+            <div class="flex justify-between"><span>Temp</span><strong>{{ visits_with_temp }}</strong></div>
+            <div class="flex justify-between"><span>BP</span><strong>{{ visits_with_bp }}</strong></div>
+            <div class="flex justify-between"><span>Pulse</span><strong>{{ visits_with_pulse }}</strong></div>
+            <div class="flex justify-between"><span>Weight</span><strong>{{ visits_with_weight }}</strong></div>
+        </div>
+    </div>
+    <div class="stat-card !p-3">
+        <div class="text-muted text-[10px] font-semibold uppercase mb-2">Averages</div>
+        <div class="space-y-1 text-sm">
+            <div class="flex justify-between"><span>Visits/Dr</span><strong>{{ avg_visits_per_doctor }}</strong></div>
+            <div class="flex justify-between"><span>Visits/Pt</span><strong>{{ avg_visits_per_patient }}</strong></div>
+            <div class="flex justify-between"><span>Pts/Dr</span><strong>{{ avg_patients_per_doctor }}</strong></div>
+            <div class="flex justify-between"><span>Busiest</span><strong>{{ busiest_day }}</strong></div>
+        </div>
+    </div>
+    <div class="stat-card !p-3">
+        <div class="text-muted text-[10px] font-semibold uppercase mb-2">Files</div>
+        <div class="space-y-1 text-sm">
+            <div class="flex justify-between"><span>With Files</span><strong>{{ visits_with_files }}</strong></div>
+            <div class="flex justify-between"><span>Without</span><strong>{{ visits_without_files }}</strong></div>
+        </div>
+    </div>
+</div>
+
+<!-- Last 7 Days - Compact Table -->
+<div class="card mb-5">
+    <div class="px-4 py-2 border-b border-border">
+        <h3 class="font-bold text-textmain text-sm">Last 7 Days</h3>
+    </div>
     <div class="overflow-x-auto">
         <table class="w-full">
             <thead>
-                <tr class="bg-gray-50 border-b border-border">
-                    <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Doctor
-                    </th>
-                    <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">
-                        Specialization</th>
-                    <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Patients
-                    </th>
-                    <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Visits
-                    </th>
-                    <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Last
-                        Active</th>
-                    <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Status
-                    </th>
-                    <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Actions
-                    </th>
+                <tr class="bg-gray-50">
+                    {% for day in daily_breakdown %}
+                    <th class="text-center px-3 py-2 text-[10px] font-semibold text-muted uppercase">{{ day.day_name|slice:":3" }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    {% for day in daily_breakdown %}
+                    <td class="text-center px-3 py-2 text-sm font-bold text-textmain">{{ day.visits }}</td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Doctor Performance - Compact -->
+<div class="card mb-5">
+    <div class="px-4 py-2 border-b border-border flex items-center justify-between">
+        <h3 class="font-bold text-textmain text-sm">Doctor Performance</h3>
+        <a href="{% url 'manage_doctors' %}" class="text-primary text-xs font-semibold hover:underline">Manage →</a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-50">
+                    <th class="text-left px-4 py-2 text-[10px] font-semibold text-muted uppercase">Doctor</th>
+                    <th class="text-center px-3 py-2 text-[10px] font-semibold text-muted uppercase">Patients</th>
+                    <th class="text-center px-3 py-2 text-[10px] font-semibold text-muted uppercase">Visits</th>
+                    <th class="text-center px-3 py-2 text-[10px] font-semibold text-muted uppercase">Today</th>
+                    <th class="text-center px-3 py-2 text-[10px] font-semibold text-muted uppercase">Month</th>
+                    <th class="text-left px-3 py-2 text-[10px] font-semibold text-muted uppercase">Last Active</th>
+                    <th class="text-center px-3 py-2 text-[10px] font-semibold text-muted uppercase">Status</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-border">
                 {% for d in doctors_data %}
-                <tr class="table-row">
-                    <td class="px-6 py-4">
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                                {{ d.profile.full_name|first|upper }}
-                            </div>
-                            <div>
-                                <div class="font-semibold text-textmain text-sm">{{ d.profile.full_name }}</div>
-                                <div class="text-xs text-muted">@{{ d.user.username }}</div>
-                            </div>
+                <tr>
+                    <td class="px-4 py-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">{{ d.profile.full_name|first|upper }}</div>
+                            <span class="text-sm font-medium text-textmain truncate">{{ d.profile.full_name }}</span>
                         </div>
                     </td>
-                    <td class="px-6 py-4 text-sm text-muted">{{ d.profile.specialization|default:"—" }}</td>
-                    <td class="px-6 py-4 text-sm font-semibold text-textmain">{{ d.patient_count }}</td>
-                    <td class="px-6 py-4 text-sm font-semibold text-textmain">{{ d.visit_count }}</td>
-                    <td class="px-6 py-4 text-sm text-muted">
-                        {% if d.last_active %}{{ d.last_active|date:"M d, Y" }}{% else %}Never{% endif %}
-                    </td>
-                    <td class="px-6 py-4">
+                    <td class="text-center px-3 py-2 text-sm font-semibold">{{ d.patient_count }}</td>
+                    <td class="text-center px-3 py-2 text-sm font-bold">{{ d.visit_count }}</td>
+                    <td class="text-center px-3 py-2 text-sm font-bold {% if d.today_visits > 0 %}text-success{% else %}text-muted{% endif %}">{{ d.today_visits }}</td>
+                    <td class="text-center px-3 py-2 text-sm font-bold text-primary">{{ d.month_visits }}</td>
+                    <td class="px-3 py-2 text-xs text-muted">{% if d.last_active %}{{ d.last_active|date:"M d" }}{% else %}Never{% endif %}</td>
+                    <td class="text-center px-3 py-2">
                         {% if d.user.is_active %}
-                        <span class="badge badge-success">● Active</span>
+                        <span class="inline-flex items-center gap-1 text-[10px] font-medium text-green-700">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Active
+                        </span>
                         {% else %}
-                        <span class="badge badge-danger">● Inactive</span>
+                        <span class="inline-flex items-center gap-1 text-[10px] font-medium text-red-700">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Inactive
+                        </span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4">
-                        <div class="flex items-center gap-2">
-                            <a href="{% url 'edit_doctor' d.user.pk %}"
-                                class="btn btn-secondary !py-1.5 !px-3 !text-xs">Edit</a>
-                            <a href="{% url 'reset_doctor_password' d.user.pk %}"
-                                class="btn btn-warning !py-1.5 !px-3 !text-xs">Reset PW</a>
-                            <form method="POST" action="{% url 'toggle_doctor_status' d.user.pk %}" class="inline">
-                                {% csrf_token %}
-                                <button type="submit"
-                                    class="btn !py-1.5 !px-3 !text-xs {% if d.user.is_active %}btn-danger{% else %}btn-success{% endif %}">
-                                    {% if d.user.is_active %}Deactivate{% else %}Activate{% endif %}
-                                </button>
-                            </form>
-                            <form method="POST" action="{% url 'delete_doctor' d.user.pk %}" class="inline"
-                                onsubmit="return confirm('Delete Dr. {{ d.profile.full_name }}? This cannot be undone.')">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger !py-1.5 !px-3 !text-xs">Delete</button>
-                            </form>
-                        </div>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Recent Visits - Compact -->
+<div class="card">
+    <div class="px-4 py-2 border-b border-border">
+        <h3 class="font-bold text-textmain text-sm">Recent Visits</h3>
+    </div>
+    {% if recent_visits %}
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-50">
+                    <th class="text-left px-4 py-2 text-[10px] font-semibold text-muted uppercase">Date</th>
+                    <th class="text-left px-4 py-2 text-[10px] font-semibold text-muted uppercase">Patient</th>
+                    <th class="text-left px-4 py-2 text-[10px] font-semibold text-muted uppercase">Doctor</th>
+                    <th class="text-left px-4 py-2 text-[10px] font-semibold text-muted uppercase">Diagnosis</th>
+                    <th class="text-center px-4 py-2 text-[10px] font-semibold text-muted uppercase">Files</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+                {% for v in recent_visits %}
+                <tr>
+                    <td class="px-4 py-2 text-xs text-muted">{{ v.visit_date|date:"M d g:iA" }}</td>
+                    <td class="px-4 py-2 text-sm font-medium text-textmain">{{ v.patient.name }}</td>
+                    <td class="px-4 py-2 text-xs text-muted">{{ v.doctor.doctor_profile.full_name }}</td>
+                    <td class="px-4 py-2 text-xs text-muted max-w-[200px] truncate">{{ v.diagnosis|default:"—" }}</td>
+                    <td class="px-4 py-2 text-center text-xs">
+                        {% if v.visitfile_set.count > 0 %}<span class="badge badge-blue !text-[10px]">{{ v.visitfile_set.count }}</span>
+                        {% else %}<span class="text-muted">—</span>{% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -118,14 +230,7 @@
         </table>
     </div>
     {% else %}
-    <div class="text-center py-16">
-        <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-        <p class="text-muted font-medium">No doctors yet.</p>
-        <a href="{% url 'add_doctor' %}" class="btn btn-primary mt-4">Add First Doctor</a>
-    </div>
+    <div class="text-center py-8"><p class="text-muted text-sm">No visits yet.</p></div>
     {% endif %}
 </div>
 {% endblock %}

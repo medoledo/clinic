@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from django.shortcuts import redirect
 
 urlpatterns = [
-    path('django-admin/', admin.site.urls),
+    path('admin/', admin.site.urls),
     path('', lambda request: redirect('login'), name='home'),
     path('', include('accounts.urls')),
     path('', include('patients.urls')),
