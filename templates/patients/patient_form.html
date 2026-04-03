@@ -1,119 +1,72 @@
-﻿{% extends 'base.html' %}
-{% block title %}{{ action }} Patient — MediTrack{% endblock %}
-{% block page_title %}{{ action }} Patient{% endblock %}
-
-{% block top_actions %}
 {% if patient %}
-<a href="{% url 'patient_detail' patient.pk %}" class="btn btn-secondary">← Back</a>
+<form method="POST" id="edit-patient-form" onsubmit="submitEditPatient(event)">
 {% else %}
-<a href="{% url 'patient_list' %}" class="btn btn-secondary">← Patients</a>
+<form method="POST" id="add-patient-form" onsubmit="submitAddPatient(event)">
 {% endif %}
-{% endblock %}
-
-{% block content %}
-<div class="max-w-2xl">
-    <div class="card p-6">
-        <form method="POST" id="patient-form">
-            {% csrf_token %}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div class="md:col-span-2">
-                    <label class="form-label">Full Name *</label>
-                    <input name="name" type="text" required class="form-input" value="{{ patient.name|default:'' }}" placeholder="Patient's full name" />
-                </div>
-                <div>
-                    <label class="form-label">Phone Number</label>
-                    <input name="phone" type="tel" class="form-input" value="{{ patient.phone|default:'' }}" placeholder="e.g. 01012345678" />
-                </div>
-                <div>
-                    <label class="form-label">Date of Birth</label>
-                    <input name="date_of_birth" type="date" class="form-input" id="dob-input" value="{{ patient.date_of_birth|date:'Y-m-d'|default:'' }}" />
-                    <p id="age-display" class="text-xs text-primary font-semibold mt-1.5" style="display:none"></p>
-                </div>
-                <div>
-                    <label class="form-label">Gender *</label>
-                    <select name="gender" class="form-input">
-                        <option value="male" {% if not patient or patient.gender == 'male' %}selected{% endif %}>Male</option>
-                        <option value="female" {% if patient and patient.gender == 'female' %}selected{% endif %}>Female</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="form-label">Blood Type</label>
-                    <select name="blood_type" class="form-input">
-                        <option value="">Unknown</option>
-                        <option value="A+" {% if patient and patient.blood_type == 'A+' %}selected{% endif %}>A+</option>
-                        <option value="A-" {% if patient and patient.blood_type == 'A-' %}selected{% endif %}>A-</option>
-                        <option value="B+" {% if patient and patient.blood_type == 'B+' %}selected{% endif %}>B+</option>
-                        <option value="B-" {% if patient and patient.blood_type == 'B-' %}selected{% endif %}>B-</option>
-                        <option value="AB+" {% if patient and patient.blood_type == 'AB+' %}selected{% endif %}>AB+</option>
-                        <option value="AB-" {% if patient and patient.blood_type == 'AB-' %}selected{% endif %}>AB-</option>
-                        <option value="O+" {% if patient and patient.blood_type == 'O+' %}selected{% endif %}>O+</option>
-                        <option value="O-" {% if patient and patient.blood_type == 'O-' %}selected{% endif %}>O-</option>
-                    </select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="form-label">Address</label>
-                    <textarea name="address" class="form-textarea !min-h-[72px]" placeholder="Patient's address">{{ patient.address|default:'' }}</textarea>
-                </div>
-                <div>
-                    <label class="form-label">Emergency Contact Name</label>
-                    <input name="emergency_contact_name" type="text" class="form-input" value="{{ patient.emergency_contact_name|default:'' }}" placeholder="Contact name" />
-                </div>
-                <div>
-                    <label class="form-label">Emergency Contact Phone</label>
-                    <input name="emergency_contact_phone" type="tel" class="form-input" value="{{ patient.emergency_contact_phone|default:'' }}" placeholder="Contact phone" />
-                </div>
-                <div class="md:col-span-2">
-                    <label class="form-label">General Notes</label>
-                    <textarea name="notes" class="form-textarea" placeholder="Any general notes about this patient (allergies, chronic conditions, etc.)">{{ patient.notes|default:'' }}</textarea>
-                </div>
-                {% if patient %}
-                <div class="md:col-span-2">
-                    <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                        <input name="is_active" type="checkbox" id="is_active" class="w-4 h-4 text-blue-600 rounded cursor-pointer" {% if patient.is_active %}checked{% endif %} />
-                        <label for="is_active" class="text-sm font-medium text-textmain cursor-pointer">Patient is active</label>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-            <div class="flex gap-3 mt-6 pt-5 border-t border-border">
-                <button type="submit" class="btn btn-primary" id="save-btn">
-                    <span id="save-text">{{ action }} Patient</span>
-                    <span id="save-spinner" class="hidden spinner"></span>
-                </button>
-                {% if patient %}
-                <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-secondary">Cancel</a>
-                {% else %}
-                <a href="{% url 'patient_list' %}" class="btn btn-secondary">Cancel</a>
-                {% endif %}
-            </div>
-        </form>
+    {% csrf_token %}
+    {% if patient %}
+    <input type="hidden" name="patient_id" value="{{ patient.pk }}" />
+    {% endif %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div class="md:col-span-2">
+            <label class="form-label">Full Name *</label>
+            <input name="name" type="text" required class="form-input" value="{{ patient.name|default:'' }}" placeholder="Patient's full name" />
+        </div>
+        <div>
+            <label class="form-label">Phone Number</label>
+            <input name="phone" type="tel" class="form-input" value="{{ patient.phone|default:'' }}" placeholder="e.g. 01012345678" />
+        </div>
+        <div>
+            <label class="form-label">Date of Birth</label>
+            <input name="date_of_birth" type="date" class="form-input" id="dob-input" value="{{ patient.date_of_birth|date:'Y-m-d'|default:'' }}" />
+            <p id="age-display" class="text-xs text-primary font-semibold mt-1.5" style="display:none"></p>
+        </div>
+        <div>
+            <label class="form-label">Gender *</label>
+            <select name="gender" class="form-input">
+                <option value="male" {% if not patient or patient.gender == 'male' %}selected{% endif %}>Male</option>
+                <option value="female" {% if patient and patient.gender == 'female' %}selected{% endif %}>Female</option>
+            </select>
+        </div>
+        <div class="md:col-span-2">
+            <label class="form-label">General Notes</label>
+            <textarea name="notes" class="form-textarea !min-h-[72px]" placeholder="Any general notes about this patient">{{ patient.notes|default:'' }}</textarea>
+        </div>
     </div>
-</div>
+    <div class="flex gap-3">
+        {% if patient %}
+        <button type="submit" class="btn btn-primary" id="edit-submit-btn">
+            <span id="edit-submit-text">Save Changes</span>
+            <span id="edit-submit-spinner" class="hidden spinner"></span>
+        </button>
+        {% else %}
+        <button type="submit" class="btn btn-primary" id="add-submit-btn">
+            <span id="add-submit-text">Add Patient</span>
+            <span id="add-submit-spinner" class="hidden spinner"></span>
+        </button>
+        {% endif %}
+        <button type="button" onclick="closeModal('{% if patient %}edit{% else %}add{% endif %}-patient-modal')" class="btn btn-secondary">Cancel</button>
+    </div>
+</form>
 <script>
-    // Age auto-calc from DOB
-    const dobInput = document.getElementById('dob-input');
-    const ageDisplay = document.getElementById('age-display');
-    function calcAge() {
-        const val = dobInput.value;
-        if (!val) { ageDisplay.style.display = 'none'; return; }
-        const today = new Date();
-        const birth = new Date(val);
-        let age = today.getFullYear() - birth.getFullYear();
-        const m = today.getMonth() - birth.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-        if (age >= 0 && age < 150) {
-            ageDisplay.style.display = 'block';
-            ageDisplay.textContent = `Age: ${age} years old`;
+    (function() {
+        var dobInput = document.getElementById('dob-input');
+        var ageDisplay = document.getElementById('age-display');
+        if (!dobInput || !ageDisplay) return;
+        function calcAge() {
+            var val = dobInput.value;
+            if (!val) { ageDisplay.style.display = 'none'; return; }
+            var today = new Date();
+            var birth = new Date(val);
+            var age = today.getFullYear() - birth.getFullYear();
+            var m = today.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+            if (age >= 0 && age < 150) {
+                ageDisplay.style.display = 'block';
+                ageDisplay.textContent = 'Age: ' + age + ' years old';
+            }
         }
-    }
-    dobInput.addEventListener('change', calcAge);
-    calcAge();
-
-    // Save loading state
-    document.getElementById('patient-form').addEventListener('submit', () => {
-        document.getElementById('save-btn').disabled = true;
-        document.getElementById('save-text').textContent = 'Saving...';
-        document.getElementById('save-spinner').classList.remove('hidden');
-    });
+        dobInput.addEventListener('change', calcAge);
+        calcAge();
+    })();
 </script>
-{% endblock %}

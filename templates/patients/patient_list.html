@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
-{% block title %}My Patients — MediTrack{% endblock %}
+{% block title %}My Patients &#8212; MediTrack{% endblock %}
 {% block page_title %}My Patients{% endblock %}
 
 {% block top_actions %}
-<a href="{% url 'add_patient' %}" class="btn btn-primary">+ Add Patient</a>
+<button onclick="openAddPatientModal()" class="btn btn-primary">+ Add Patient</button>
 {% endblock %}
 
 {% block content %}
@@ -43,23 +43,23 @@
                 <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Last Visit
                 </th>
                 <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Visits</th>
-                <th class="px-6 py-3"></th>
+                <th class="text-center px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Actions</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-border">
             {% for patient in page_obj %}
-            <tr class="table-row cursor-pointer" onclick="window.location='{% url 'patient_detail' patient.pk %}'">
+            <tr class="table-row">
                 <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
+                    <a href="{% url 'patient_detail' patient.pk %}" class="flex items-center gap-3">
                         <div
                             class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 {% if patient.gender == 'female' %}bg-pink-100 text-pink-700{% else %}bg-blue-100 text-blue-700{% endif %}">
                             {{ patient.name|first|upper }}
                         </div>
                         <div class="font-semibold text-textmain text-sm">{{ patient.name }}</div>
-                    </div>
+                    </a>
                 </td>
-                <td class="px-6 py-4 text-sm text-muted">{{ patient.phone|default:"—" }}</td>
-                <td class="px-6 py-4 text-sm text-textmain">{{ patient.age|default:"—" }}</td>
+                <td class="px-6 py-4 text-sm text-muted">{{ patient.phone|default:"&#8212;" }}</td>
+                <td class="px-6 py-4 text-sm text-textmain">{{ patient.age|default:"&#8212;" }}</td>
                 <td class="px-6 py-4">
                     <span class="badge {% if patient.gender == 'female' %}badge-warning{% else %}badge-blue{% endif %}">
                         {{ patient.get_gender_display }}
@@ -70,8 +70,25 @@
                 </td>
                 <td class="px-6 py-4 text-sm font-semibold text-textmain">{{ patient.visit_count }}</td>
                 <td class="px-6 py-4">
-                    <a href="{% url 'patient_detail' patient.pk %}" class="text-muted hover:text-primary"
-                        title="Details">⋮</a>
+                    <div class="relative inline-block">
+                        <button type="button" class="kebab-btn p-1 text-muted hover:text-textmain rounded"
+                            onclick="toggleKebab(this, event)">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <circle cx="10" cy="3" r="1.5" />
+                                <circle cx="10" cy="10" r="1.5" />
+                                <circle cx="10" cy="17" r="1.5" />
+                            </svg>
+                        </button>
+                        <div
+                            class="kebab-dropdown hidden fixed w-44 bg-white border border-border rounded-lg shadow-lg z-[9999]">
+                            <a href="{% url 'patient_detail' patient.pk %}"
+                                class="block w-full text-left px-4 py-2 text-sm text-textmain hover:bg-gray-50">View</a>
+                            <button onclick="openEditPatientModal({{ patient.pk }})"
+                                class="block w-full text-left px-4 py-2 text-sm text-textmain hover:bg-gray-50">Edit</button>
+                            <button onclick="openDeletePatientModal({{ patient.pk }}, '{{ patient.name|escapejs }}')"
+                                class="block w-full text-left px-4 py-2 text-sm text-danger hover:bg-gray-50">Delete</button>
+                        </div>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
@@ -82,21 +99,35 @@
 <!-- Mobile Cards -->
 <div class="space-y-3 md:hidden">
     {% for patient in page_obj %}
-    <a href="{% url 'patient_detail' patient.pk %}"
-        class="card p-4 flex items-center gap-4 block hover:shadow-md transition-shadow">
+    <div class="card p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
         <div
             class="w-11 h-11 rounded-full flex items-center justify-center font-bold flex-shrink-0 {% if patient.gender == 'female' %}bg-pink-100 text-pink-700{% else %}bg-blue-100 text-blue-700{% endif %}">
             {{ patient.name|first|upper }}
         </div>
         <div class="flex-1 min-w-0">
-            <div class="font-semibold text-textmain">{{ patient.name }}</div>
-            <div class="text-xs text-muted">{{ patient.phone|default:"No phone" }} · {% if patient.age %}{{ patient.age }} yrs{% else %}Age unknown{% endif %}</div>
-            <div class="text-xs text-muted mt-0.5">{{ patient.visit_count }} visit{{ patient.visit_count|pluralize }} · {% if patient.last_visit_date %}Last: {{ patient.last_visit_date|date:"M d" }}{% else %}No visits{% endif %}</div>
+            <a href="{% url 'patient_detail' patient.pk %}" class="font-semibold text-textmain">{{ patient.name }}</a>
+            <div class="text-xs text-muted">{{ patient.phone|default:"No phone" }} &#183; {% if patient.age %}{{ patient.age }} yrs{% else %}Age unknown{% endif %}</div>
+            <div class="text-xs text-muted mt-0.5">{{ patient.visit_count }} visit{{ patient.visit_count|pluralize }} &#183; {% if patient.last_visit_date %}Last: {{ patient.last_visit_date|date:"M d" }}{% else %}No visits{% endif %}</div>
         </div>
-        <svg class="w-5 h-5 text-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-    </a>
+        <div class="relative inline-block">
+            <button type="button" class="kebab-btn p-1 text-muted hover:text-textmain rounded"
+                onclick="toggleKebab(this, event)">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <circle cx="10" cy="3" r="1.5" />
+                    <circle cx="10" cy="10" r="1.5" />
+                    <circle cx="10" cy="17" r="1.5" />
+                </svg>
+            </button>
+            <div class="kebab-dropdown hidden fixed w-44 bg-white border border-border rounded-lg shadow-lg z-[9999]">
+                <a href="{% url 'patient_detail' patient.pk %}"
+                    class="block w-full text-left px-4 py-2 text-sm text-textmain hover:bg-gray-50">View</a>
+                <button onclick="openEditPatientModal({{ patient.pk }})"
+                    class="block w-full text-left px-4 py-2 text-sm text-textmain hover:bg-gray-50">Edit</button>
+                <button onclick="openDeletePatientModal({{ patient.pk }}, '{{ patient.name|escapejs }}')"
+                    class="block w-full text-left px-4 py-2 text-sm text-danger hover:bg-gray-50">Delete</button>
+            </div>
+        </div>
+    </div>
     {% endfor %}
 </div>
 
@@ -105,12 +136,12 @@
 <div class="flex items-center justify-center gap-2 mt-6">
     {% if page_obj.has_previous %}
     <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&gender={{ gender_filter }}"
-        class="btn btn-secondary !py-2 !px-4">← Prev</a>
+        class="btn btn-secondary !py-2 !px-4">&#8592; Prev</a>
     {% endif %}
     <span class="text-sm text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
     <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&gender={{ gender_filter }}"
-        class="btn btn-secondary !py-2 !px-4">Next →</a>
+        class="btn btn-secondary !py-2 !px-4">Next &#8594;</a>
     {% endif %}
 </div>
 {% endif %}
@@ -126,8 +157,294 @@
     <a href="{% url 'patient_list' %}" class="btn btn-secondary mt-4">Clear Search</a>
     {% else %}
     <p class="text-muted font-medium">No patients yet. Add your first patient.</p>
-    <a href="{% url 'add_patient' %}" class="btn btn-primary mt-4">Add Patient</a>
+    <button onclick="openAddPatientModal()" class="btn btn-primary mt-4">Add Patient</button>
     {% endif %}
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function getCookie(name) {
+        var value = '; ' + document.cookie;
+        var parts = value.split('; ' + name + '=');
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+    const csrfToken = getCookie('csrftoken');
+
+    function apiFetch(url, formData) {
+        return fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        }).then(function (r) {
+            var ct = r.headers.get('content-type');
+            if (ct && ct.includes('application/json')) return r.json();
+            return r.text().then(function (txt) {
+                throw new Error('Server error (returned HTML). Check console for details.');
+            });
+        });
+    }
+
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+        document.body.style.overflow = '';
+        var form = document.getElementById(id).querySelector('form');
+        if (form) form.reset();
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) {
+                overlay.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        });
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(function (m) {
+                m.classList.add('hidden');
+            });
+            document.body.style.overflow = '';
+        }
+    });
+
+    function showSpinner(btnId, textId, spinnerId) {
+        document.getElementById(btnId).disabled = true;
+        document.getElementById(textId).textContent = 'Saving...';
+        document.getElementById(spinnerId).classList.remove('hidden');
+    }
+
+    function hideSpinner(btnId, textId, spinnerId, originalText) {
+        document.getElementById(btnId).disabled = false;
+        document.getElementById(textId).textContent = originalText;
+        document.getElementById(spinnerId).classList.add('hidden');
+    }
+
+    function showMessage(msg, type) {
+        var container = document.querySelector('.px-6.pt-4.space-y-2');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'px-6 pt-4 space-y-2';
+            document.querySelector('main').prepend(container);
+        }
+        var colors = type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800';
+        var icon = type === 'success' ? '&#10003;' : '&times;';
+        var div = document.createElement('div');
+        div.className = 'flex items-center gap-3 p-4 rounded-lg text-sm font-medium ' + colors;
+        div.innerHTML = icon + ' ' + msg + '<button onclick="this.parentElement.remove()" class="ml-auto opacity-50 hover:opacity-100 font-bold">&#10005;</button>';
+        container.appendChild(div);
+        setTimeout(function () { div.remove(); }, 5000);
+    }
+
+    function openAddPatientModal() {
+        fetch('{% url "add_patient" %}', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function (r) { return r.text(); }).then(function (html) {
+            document.getElementById('add-patient-form-container').innerHTML = html;
+            openModal('add-patient-modal');
+        });
+    }
+
+    function submitAddPatient(e) {
+        e.preventDefault();
+        showSpinner('add-submit-btn', 'add-submit-text', 'add-submit-spinner');
+        var form = document.getElementById('add-patient-form');
+        var data = new FormData(form);
+
+        apiFetch('{% url "add_patient" %}', data)
+            .then(function (data) {
+                hideSpinner('add-submit-btn', 'add-submit-text', 'add-submit-spinner', 'Add Patient');
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    closeModal('add-patient-modal');
+                    location.reload();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            })
+            .catch(function (err) {
+                hideSpinner('add-submit-btn', 'add-submit-text', 'add-submit-spinner', 'Add Patient');
+                showMessage(err.message, 'error');
+            });
+    }
+
+    function openEditPatientModal(pk) {
+        fetch('/patients/' + pk + '/edit/', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function (r) { return r.text(); }).then(function (html) {
+            document.getElementById('edit-patient-form-container').innerHTML = html;
+            openModal('edit-patient-modal');
+        });
+    }
+
+    function submitEditPatient(e) {
+        e.preventDefault();
+        showSpinner('edit-submit-btn', 'edit-submit-text', 'edit-submit-spinner');
+        var form = document.getElementById('edit-patient-form');
+        var data = new FormData(form);
+        var pk = data.get('patient_id');
+
+        apiFetch('/patients/' + pk + '/edit/', data)
+            .then(function (data) {
+                hideSpinner('edit-submit-btn', 'edit-submit-text', 'edit-submit-spinner', 'Save Changes');
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    closeModal('edit-patient-modal');
+                    location.reload();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            })
+            .catch(function (err) {
+                hideSpinner('edit-submit-btn', 'edit-submit-text', 'edit-submit-spinner', 'Save Changes');
+                showMessage(err.message, 'error');
+            });
+    }
+
+    function openDeletePatientModal(pk, name) {
+        document.getElementById('delete-patient-id').value = pk;
+        document.getElementById('delete-patient-name').textContent = name;
+        openModal('delete-patient-modal');
+    }
+
+    function submitDeletePatient(e) {
+        e.preventDefault();
+        showSpinner('delete-submit-btn', 'delete-submit-text', 'delete-submit-spinner');
+        var pk = document.getElementById('delete-patient-id').value;
+
+        fetch('/patients/' + pk + '/delete/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function (r) { return r.json(); })
+            .then(function (data) {
+                hideSpinner('delete-submit-btn', 'delete-submit-text', 'delete-submit-spinner', 'Delete');
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    closeModal('delete-patient-modal');
+                    location.reload();
+                } else {
+                    showMessage(data.message || 'Failed to delete patient.', 'error');
+                }
+            })
+            .catch(function (err) {
+                hideSpinner('delete-submit-btn', 'delete-submit-text', 'delete-submit-spinner', 'Delete');
+                showMessage(err.message, 'error');
+            });
+    }
+
+    function toggleKebab(btn, event) {
+        event.stopPropagation();
+        var dropdown = btn.parentElement.querySelector('.kebab-dropdown');
+        if (!dropdown) return;
+        document.querySelectorAll('.kebab-dropdown').forEach(function (d) {
+            if (d !== dropdown) d.classList.add('hidden');
+        });
+        if (dropdown.classList.contains('hidden')) {
+            var rect = btn.getBoundingClientRect();
+            dropdown.style.top = (rect.bottom + 4) + 'px';
+            dropdown.style.left = Math.min(rect.right - 176, window.innerWidth - 200) + 'px';
+            dropdown.classList.remove('hidden');
+        } else {
+            dropdown.classList.add('hidden');
+        }
+    }
+
+    document.addEventListener('click', function (e) {
+        document.querySelectorAll('.kebab-dropdown').forEach(function (d) {
+            if (!d.contains(e.target)) d.classList.add('hidden');
+        });
+    });
+</script>
+
+<!-- Add Patient Modal -->
+<div id="add-patient-modal" class="modal-overlay hidden">
+    <div class="modal-content max-w-lg">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold text-textmain">Add Patient</h3>
+            <button onclick="closeModal('add-patient-modal')" class="text-muted hover:text-textmain">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div id="add-patient-form-container"></div>
+    </div>
+</div>
+
+<!-- Edit Patient Modal -->
+<div id="edit-patient-modal" class="modal-overlay hidden">
+    <div class="modal-content max-w-lg">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold text-textmain">Edit Patient</h3>
+            <button onclick="closeModal('edit-patient-modal')" class="text-muted hover:text-textmain">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div id="edit-patient-form-container"></div>
+    </div>
+</div>
+
+<!-- Delete Patient Modal -->
+<div id="delete-patient-modal" class="modal-overlay hidden">
+    <div class="modal-content max-w-md">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold text-textmain">Delete Patient</h3>
+            <button onclick="closeModal('delete-patient-modal')" class="text-muted hover:text-textmain">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <p class="text-sm text-muted mb-2">Are you sure you want to delete <strong id="delete-patient-name"></strong>?</p>
+        <p class="text-sm text-danger mb-6">This will also delete all visits and files for this patient.</p>
+        <form id="delete-patient-form" onsubmit="submitDeletePatient(event)">
+            {% csrf_token %}
+            <input type="hidden" id="delete-patient-id" name="patient_id" />
+            <div class="flex gap-3">
+                <button type="submit" class="btn btn-danger" id="delete-submit-btn">
+                    <span id="delete-submit-text">Delete</span>
+                    <span id="delete-submit-spinner" class="hidden spinner"></span>
+                </button>
+                <button type="button" onclick="closeModal('delete-patient-modal')" class="btn btn-secondary">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        width: 90%;
+        max-width: 512px;
+        max-height: 90vh;
+        overflow-y: auto;
+        animation: slideUp 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
 {% endblock %}

@@ -441,14 +441,6 @@
                 </svg>
                 My Patients
             </a>
-            <a href="{% url 'add_patient' %}"
-                class="sidebar-link {% if request.resolver_match.url_name == 'add_patient' %}active{% endif %}">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                </svg>
-                Add Patient
-            </a>
             <a href="{% url 'pending_visits' %}"
                 class="sidebar-link {% if request.resolver_match.url_name == 'pending_visits' %}active{% endif %}">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -520,9 +512,6 @@
                         class="text-sm font-medium {% if request.resolver_match.url_name == 'dashboard' %}text-primary{% else %}text-muted hover:text-textmain{% endif %}">Dashboard</a>
                     <a href="{% url 'patient_list' %}"
                         class="text-sm font-medium {% if request.resolver_match.url_name == 'patient_list' %}text-primary{% else %}text-muted hover:text-textmain{% endif %}">Patients</a>
-                    <a href="{% url 'add_patient' %}"
-                        class="text-sm font-medium {% if request.resolver_match.url_name == 'add_patient' %}text-primary{% else %}text-muted hover:text-textmain{% endif %}">Add
-                        Patient</a>
                     <a href="{% url 'pending_visits' %}"
                         class="text-sm font-medium {% if request.resolver_match.url_name == 'pending_visits' %}text-primary{% else %}text-muted hover:text-textmain{% endif %}">Pending</a>
                     {% elif user.profile.role == 'admin' %}
@@ -584,12 +573,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>Patients
-            </a>
-            <a href="{% url 'add_patient' %}"
-                class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white px-3 py-2 rounded-lg text-xs">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>Add
             </a>
             <a href="{% url 'pending_visits' %}"
                 class="relative flex flex-col items-center gap-0.5 text-slate-400 hover:text-white px-3 py-2 rounded-lg text-xs">

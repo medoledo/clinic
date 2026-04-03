@@ -5,34 +5,19 @@ from django.utils import timezone
 
 class Patient(models.Model):
     GENDER_CHOICES = [('male', 'Male'), ('female', 'Female')]
-    BLOOD_TYPE_CHOICES = [
-        ('A+', 'A+'), ('A-', 'A-'),
-        ('B+', 'B+'), ('B-', 'B-'),
-        ('AB+', 'AB+'), ('AB-', 'AB-'),
-        ('O+', 'O+'), ('O-', 'O-'),
-    ]
 
     doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='patients')
     name = models.CharField(max_length=200)
     phone = models.CharField(max_length=20, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='male')
-    blood_type = models.CharField(max_length=5, choices=BLOOD_TYPE_CHOICES, blank=True)
-    address = models.TextField(blank=True)
-    emergency_contact_name = models.CharField(max_length=200, blank=True)
-    emergency_contact_phone = models.CharField(max_length=20, blank=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['-created_at']
         indexes = [
-            # Covers the common "fetch all patients for a doctor" query
-            models.Index(fields=['doctor', 'is_active'], name='patient_doctor_active_idx'),
-            # Covers ordering + pagination
             models.Index(fields=['doctor', '-created_at'], name='patient_doctor_created_idx'),
-            # Covers name search
             models.Index(fields=['name'], name='patient_name_idx'),
         ]
 

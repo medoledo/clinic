@@ -14,8 +14,8 @@ class VisitFileInline(admin.TabularInline):
 
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
-    list_display = ('name', 'doctor', 'phone', 'gender', 'age', 'is_active', 'created_at')
-    list_filter = ('gender', 'blood_type', 'is_active', 'created_at')
+    list_display = ('name', 'doctor', 'phone', 'gender', 'age', 'created_at')
+    list_filter = ('gender', 'created_at')
     search_fields = ('name', 'phone', 'doctor__username')
     readonly_fields = ('created_at',)
     list_select_related = ('doctor',)
@@ -25,10 +25,10 @@ class PatientAdmin(admin.ModelAdmin):
     raw_id_fields = ('doctor',)
     fieldsets = (
         ('Personal Info', {
-            'fields': ('doctor', 'name', 'phone', 'date_of_birth', 'gender', 'blood_type')
+            'fields': ('doctor', 'name', 'phone', 'date_of_birth', 'gender')
         }),
         ('Additional Info', {
-            'fields': ('address', 'emergency_contact_name', 'emergency_contact_phone', 'notes', 'is_active')
+            'fields': ('notes',)
         }),
         ('System', {
             'fields': ('created_at',),

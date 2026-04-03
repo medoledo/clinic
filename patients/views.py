@@ -171,6 +171,21 @@ def patient_detail(request, pk):
 @doctor_required
 def add_patient(request):
     if request.method == 'POST':
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            patient = Patient(doctor=request.user)
+            error = _fill_patient_from_post(patient, request.POST)
+            if error:
+                return JsonResponse({'success': False, 'message': error})
+            patient.save()
+            return JsonResponse({
+                'success': True,
+                'message': f'Patient "{patient.name}" added successfully.',
+                'patient_id': patient.pk,
+                'patient_name': patient.name,
+                'patient_phone': patient.phone,
+                'patient_gender': patient.gender,
+                'patient_dob': patient.date_of_birth.isoformat() if patient.date_of_birth else None,
+            })
         patient = Patient(doctor=request.user)
         error = _fill_patient_from_post(patient, request.POST)
         if error:
@@ -180,6 +195,9 @@ def add_patient(request):
         messages.success(request, f'Patient "{patient.name}" added successfully.')
         return redirect('patient_detail', pk=patient.pk)
 
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'patients/patient_form.html', {'action': 'Add', 'patient': None})
+
     return render(request, 'patients/patient_form.html', {'action': 'Add', 'patient': None})
 
 
@@ -188,6 +206,20 @@ def edit_patient(request, pk):
     patient = get_object_or_404(Patient, pk=pk, doctor=request.user)
 
     if request.method == 'POST':
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            error = _fill_patient_from_post(patient, request.POST)
+            if error:
+                return JsonResponse({'success': False, 'message': error})
+            patient.save()
+            return JsonResponse({
+                'success': True,
+                'message': f'Patient "{patient.name}" updated.',
+                'patient_id': patient.pk,
+                'patient_name': patient.name,
+                'patient_phone': patient.phone,
+                'patient_gender': patient.gender,
+                'patient_dob': patient.date_of_birth.isoformat() if patient.date_of_birth else None,
+            })
         error = _fill_patient_from_post(patient, request.POST)
         if error:
             messages.error(request, error)
@@ -196,7 +228,20 @@ def edit_patient(request, pk):
         messages.success(request, f'Patient "{patient.name}" updated.')
         return redirect('patient_detail', pk=patient.pk)
 
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'patients/patient_form.html', {'action': 'Edit', 'patient': patient})
+
     return render(request, 'patients/patient_form.html', {'action': 'Edit', 'patient': patient})
+
+
+@doctor_required
+def delete_patient(request, pk):
+    patient = get_object_or_404(Patient, pk=pk, doctor=request.user)
+    if request.method == 'POST':
+        name = patient.name
+        patient.delete()
+        return JsonResponse({'success': True, 'message': f'Patient "{name}" deleted.'})
+    return JsonResponse({'success': False, 'message': 'Method not allowed.'}, status=405)
 
 
 def _fill_patient_from_post(patient, post):
@@ -214,15 +259,7 @@ def _fill_patient_from_post(patient, post):
     patient.date_of_birth = dob if dob else None
     gender = post.get('gender', 'male')
     patient.gender = gender if gender in ('male', 'female') else 'male'
-    blood_type = post.get('blood_type', '').strip()
-    valid_blood_types = [bt[0] for bt in Patient.BLOOD_TYPE_CHOICES]
-    patient.blood_type = blood_type if blood_type in valid_blood_types else ''
-    patient.address = post.get('address', '').strip()
-    patient.emergency_contact_name = post.get('emergency_contact_name', '').strip()[:200]
-    patient.emergency_contact_phone = post.get('emergency_contact_phone', '').strip()[:20]
     patient.notes = post.get('notes', '').strip()
-    # Checkbox: present means active ('on'), absent means inactive
-    patient.is_active = post.get('is_active') == 'on'
     return None
 
 
