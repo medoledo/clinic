@@ -32,6 +32,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
         rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -404,7 +405,7 @@
 <body class="min-h-screen">
 
     <div id="offline-banner">âš ï¸ No internet connection â€” visits are being saved locally</div>
-    <div id="online-banner">âœ… Connected â€” syncing saved visits...</div>
+    <div id="online-banner"> Connected â€” syncing saved visits...</div>
 
     {% if user.is_authenticated %}
     <aside id="sidebar"
@@ -535,18 +536,32 @@
         {% if messages %}
         <div class="px-6 pt-4 space-y-2">
             {% for message in messages %}
-            <div data-alert class="flex items-center gap-3 p-4 rounded-lg text-sm font-medium
-      {% if 'error' in message.tags %}bg-red-50 border border-red-200 text-red-800
-      {% elif 'success' in message.tags %}bg-green-50 border border-green-200 text-green-800
-      {% elif 'warning' in message.tags %}bg-yellow-50 border border-yellow-200 text-yellow-800
-      {% else %}bg-blue-50 border border-blue-200 text-blue-800{% endif %}">
+            <div data-alert
+                class="flex items-center gap-3 p-4 rounded-lg text-sm font-medium {% if 'error' in message.tags %}bg-red-50 border border-red-200 text-red-800{% elif 'success' in message.tags %}bg-green-50 border border-green-200 text-green-800{% elif 'warning' in message.tags %}bg-yellow-50 border border-yellow-200 text-yellow-800{% else %}bg-blue-50 border border-blue-200 text-blue-800{% endif %}">
                 <span class="flex-shrink-0 font-bold">
-                    {% if 'success' in message.tags %}&#10003;{% elif 'error' in message.tags %}&times;{% elif 'warning'
-                    in message.tags %}&#9888;{% else %}&#9432;{% endif %}
+                    {% if 'success' in message.tags %}<svg class="w-4 h-4 inline" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>{% elif 'error' in message.tags %}<svg class="w-4 h-4 inline" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>{% elif 'warning' in message.tags %}<svg class="w-4 h-4 inline" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>{% else %}<svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>{% endif %}
                 </span>
                 {{ message }}
                 <button onclick="this.parentElement.remove()" class="ml-auto opacity-50 hover:opacity-100 font-bold"
-                    aria-label="Dismiss">&times;</button>
+                    aria-label="Dismiss"><svg class="w-4 h-4 inline" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg></button>
             </div>
             {% endfor %}
         </div>
@@ -612,7 +627,7 @@
         class="hidden fixed bottom-20 right-6 bg-sidebar text-white rounded-xl p-4 shadow-2xl z-50 text-sm w-60">
         <div class="font-bold mb-3 flex items-center justify-between">âŒ¨ï¸ Shortcuts <button
                 onclick="document.getElementById('shortcuts-hint').classList.add('hidden')"
-                class="text-slate-400 hover:text-white">âœ•</button></div>
+                class="text-slate-400 hover:text-white"></button></div>
         <div class="space-y-2 text-slate-300 text-xs">
             <div class="flex justify-between"><span>Toggle Mic</span><kbd
                     class="bg-slate-700 px-1.5 py-0.5 rounded">Ctrl+M</kbd></div>
@@ -638,6 +653,7 @@
         <img id="lightbox-img" src="" alt="Full size" onclick="event.stopPropagation()" />
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="{% static 'js/offline.js' %}"></script>
     <script src="{% static 'js/shortcuts.js' %}"></script>
     <script>
@@ -689,6 +705,16 @@
         });
     </script>
     {% block extra_js %}{% endblock %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof flatpickr !== 'undefined') {
+                flatpickr("input[type=date]", {
+                    dateFormat: "Y-m-d",
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

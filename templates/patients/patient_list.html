@@ -31,8 +31,8 @@
             <label class="form-label">Gender</label>
             <select name="gender" class="form-input w-auto">
                 <option value="">All</option>
-                <option value="male" {% if gender_filter == 'male' %}selected{% endif %}>Male</option>
-                <option value="female" {% if gender_filter == 'female' %}selected{% endif %}>Female</option>
+                <option value="male" {% if gender_filter == "male" %}selected{% endif %}>Male</option>
+                <option value="female" {% if gender_filter == "female" %}selected{% endif %}>Female</option>
             </select>
         </div>
         <button type="submit" class="btn btn-primary">Filter</button>
@@ -52,7 +52,8 @@
                 <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Phone</th>
                 <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Age</th>
                 <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Gender</th>
-                <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Last Visit
+                <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">
+                    Last Visit <span class="lowercase text-[10px] opacity-70"></span>
                 </th>
                 <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Visits</th>
                 <th class="text-center px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Actions</th>
@@ -78,7 +79,7 @@
                     </span>
                 </td>
                 <td class="px-6 py-4 text-sm text-muted">
-                    {% if patient.last_visit_date %}{{ patient.last_visit_date|date:"M d, Y" }}{% else %}Never{% endif %}
+                    {% if patient.last_visit_date %}{{ patient.last_visit_date }}{% else %}Never{% endif %}
                 </td>
                 <td class="px-6 py-4 text-sm font-semibold text-textmain">{{ patient.visit_count }}</td>
                 <td class="px-6 py-4">
@@ -118,8 +119,10 @@
         </div>
         <div class="flex-1 min-w-0">
             <a href="{% url 'patient_detail' patient.pk %}" class="font-semibold text-textmain">{{ patient.name }}</a>
-            <div class="text-xs text-muted">{{ patient.phone|default:"No phone" }} &#183; {% if patient.age %}{{ patient.age }} yrs{% else %}Age unknown{% endif %}</div>
-            <div class="text-xs text-muted mt-0.5">{{ patient.visit_count }} visit{{ patient.visit_count|pluralize }} &#183; {% if patient.last_visit_date %}Last: {{ patient.last_visit_date|date:"M d" }}{% else %}No visits{% endif %}</div>
+            <div class="text-xs text-muted">{{ patient.phone|default:"No phone" }} &#183; {% if patient.age %}{{         patient.age }} yrs{% else %}Age unknown{% endif %}</div>
+            <div class="text-xs text-muted mt-0.5">{{ patient.visit_count }} visit{{ patient.visit_count|pluralize }}
+                &#183; {% if patient.last_visit_date %}Last: {{ patient.last_visit_date }}{% else %}No
+                visits{% endif %}</div>
         </div>
         <div class="relative inline-block">
             <button type="button" class="kebab-btn p-1 text-muted hover:text-textmain rounded"
@@ -149,11 +152,11 @@
     <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&gender={{ gender_filter }}"
         class="btn btn-secondary !py-2 !px-4">&#8592; Prev</a>
     {% endif %}
-    
+
     <span class="text-sm text-muted font-medium bg-white border border-border px-4 py-2 rounded-lg shadow-sm">
         Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
     </span>
-    
+
     {% if page_obj.has_next %}
     <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&gender={{ gender_filter }}"
         class="btn btn-secondary !py-2 !px-4">Next &#8594;</a>
@@ -179,6 +182,19 @@
 
 {% block extra_js %}
 <script>
+    function initModalFlatpickr(containerId) {
+        const container = document.getElementById(containerId);
+        const dobInput = container.querySelector('#dob-input');
+        if (dobInput && typeof flatpickr !== 'undefined') {
+            flatpickr(dobInput, {
+                dateFormat: "Y-m-d",allowInput: true,
+                onChange: function (selectedDates, dateStr) {
+                    if (typeof calcAge === 'function') calcAge(dateStr);
+                }
+            });
+        }
+    }
+
     function getCookie(name) {
         var value = '; ' + document.cookie;
         var parts = value.split('; ' + name + '=');
@@ -267,6 +283,7 @@
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         }).then(function (r) { return r.text(); }).then(function (html) {
             document.getElementById('add-patient-form-container').innerHTML = html;
+            initModalFlatpickr('add-patient-form-container');
             openModal('add-patient-modal');
         });
     }
@@ -299,6 +316,7 @@
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         }).then(function (r) { return r.text(); }).then(function (html) {
             document.getElementById('edit-patient-form-container').innerHTML = html;
+            initModalFlatpickr('edit-patient-form-container');
             openModal('edit-patient-modal');
         });
     }
@@ -422,7 +440,8 @@
                 </svg>
             </button>
         </div>
-        <p class="text-sm text-muted mb-2">Are you sure you want to delete <strong id="delete-patient-name"></strong>?</p>
+        <p class="text-sm text-muted mb-2">Are you sure you want to delete <strong id="delete-patient-name"></strong>?
+        </p>
         <p class="text-sm text-danger mb-6">This will also delete all visits and files for this patient.</p>
         <form id="delete-patient-form" onsubmit="submitDeletePatient(event)">
             {% csrf_token %}
@@ -432,7 +451,8 @@
                     <span id="delete-submit-text">Delete</span>
                     <span id="delete-submit-spinner" class="hidden spinner"></span>
                 </button>
-                <button type="button" onclick="closeModal('delete-patient-modal')" class="btn btn-secondary">Cancel</button>
+                <button type="button" onclick="closeModal('delete-patient-modal')"
+                    class="btn btn-secondary">Cancel</button>
             </div>
         </form>
     </div>
@@ -449,7 +469,11 @@
         justify-content: center;
         animation: fadeIn 0.2s ease;
     }
-    .modal-overlay.hidden { display: none; }
+
+    .modal-overlay.hidden {
+        display: none;
+    }
+
     .modal-content {
         background: white;
         border-radius: 12px;
@@ -460,7 +484,27 @@
         overflow-y: auto;
         animation: slideUp 0.2s ease;
     }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
 </style>
 {% endblock %}

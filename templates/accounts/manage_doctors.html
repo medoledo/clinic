@@ -43,10 +43,8 @@
                     <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">
                         Specialization</th>
                     <th class="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Phone</th>
-                    <th class="text-center px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Patients
-                    </th>
-                    <th class="text-center px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Visits
-                    </th>
+                    
+                    
                     <th class="text-center px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Status
                     </th>
                     <th class="text-center px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Actions
@@ -96,15 +94,13 @@
                             <div
                                 class="kebab-dropdown hidden fixed w-44 bg-white border border-border rounded-lg shadow-lg z-[9999]">
                                 <button
-                                    onclick="openEditModal({{ d.user.pk }}, '{{ d.full_name|escapejs }}', '{{ d.user.username|escapejs }}', '{{ d.specialization|escapejs }}', '{{ d.phone|escapejs }}', {{ d.user.is_active|yesno:"
-                                    true,false" }})"
+                                    onclick="openEditModal({{ d.user.pk }}, '{{ d.full_name|escapejs }}', '{{ d.user.username|escapejs }}', '{{ d.specialization|escapejs }}', '{{ d.phone|escapejs }}', {{ d.user.is_active|yesno:'true,false' }})"
                                     class="block w-full text-left px-4 py-2 text-sm text-textmain hover:bg-gray-50">Edit</button>
                                 <button onclick="openResetModal({{ d.user.pk }}, '{{ d.full_name|escapejs }}')"
                                     class="block w-full text-left px-4 py-2 text-sm text-textmain hover:bg-gray-50">Reset
                                     Password</button>
                                 <button
-                                    onclick="openToggleModal({{ d.user.pk }}, '{{ d.full_name|escapejs }}', {{ d.user.is_active|yesno:"
-                                    true,false" }})"
+                                    onclick="openToggleModal({{ d.user.pk }}, '{{ d.full_name|escapejs }}', {{ d.user.is_active|yesno:'true,false' }})"
                                     class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 {% if d.user.is_active %}text-danger{% else %}text-success{% endif %}">
                                     {% if d.user.is_active %}Deactivate{% else %}Activate{% endif %}
                                 </button>

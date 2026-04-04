@@ -93,10 +93,8 @@
                             class="form-input" placeholder="Enter your password" />
                     </div>
                     <div class="flex items-center gap-2">
-                        <input id="remember_me" name="remember_me" type="checkbox"
-                            class="w-4 h-4 text-blue-600 rounded border-gray-300 cursor-pointer" />
-                        <label for="remember_me" class="text-sm text-gray-600 cursor-pointer">Remember me for 30
-                            days</label>
+                        
+                        
                     </div>
                     <button type="submit" id="login-btn"
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm mt-2">
@@ -105,6 +103,10 @@
                     </button>
                 </div>
             </form>
+<p class="text-center text-sm text-muted mt-6">
+    Are you a new doctor? <a href="{% url 'register' %}" class="font-bold text-primary hover:underline">Register Here</a>
+</p>
+
         </div>
 
         <p class="text-blue-200 text-center text-xs mt-6">© 2026 MediTrack · Secure Medical Records</p>

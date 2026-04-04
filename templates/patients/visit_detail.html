@@ -16,13 +16,13 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <div class="text-muted text-xs font-semibold uppercase tracking-wider mb-0.5">Visit Date</div>
-            <div class="text-xl font-bold text-textmain">{{ visit.visit_date|date:"l, F d, Y" }}</div>
+            <div class="text-xl font-bold text-textmain">{{ visit.visit_date }}</div>
             <div class="text-muted text-sm">{{ visit.visit_date|date:"g:i A" }}</div>
         </div>
         {% if visit.next_checkup_date %}
         <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 text-sm">
             <div class="text-blue-600 font-semibold">Next Checkup</div>
-            <div class="text-blue-800 font-bold">{{ visit.next_checkup_date|date:"M d, Y" }}</div>
+            <div class="text-blue-800 font-bold">{{ visit.next_checkup_date }}</div>
         </div>
         {% endif %}
     </div>

@@ -3,6 +3,7 @@
 MediTrack Page Health Check
 ============================
 Visits every page as admin and doctor, flags any Django error pages.
+Automatically discovers real Patient and Visit IDs for testing.
 
 Usage:
     1. Run the Django server: python manage.py runserver
@@ -16,38 +17,16 @@ import requests
 
 # ─────────────────── CONFIG ───────────────────────────────────────────────────
 BASE_URL        = "http://127.0.0.1:8000"
-ADMIN_USERNAME  = "_testadmin_"
-ADMIN_PASSWORD  = "Test@12345"
-DOCTOR_USERNAME = "_testdoctor_"
-DOCTOR_PASSWORD = "Test@12345"
+ADMIN_USERNAME  = "medoledo144"
+ADMIN_PASSWORD  = "0543509195Te"
+DOCTOR_USERNAME = "Basyony12"
+DOCTOR_PASSWORD = "0543509195Te"
 TIMEOUT         = 10
 
 # ─────────────────── COLOURS ──────────────────────────────────────────────────
 GREEN  = "\033[92m"; RED  = "\033[91m"
 YELLOW = "\033[93m"; CYAN = "\033[96m"
 RESET  = "\033[0m";  BOLD = "\033[1m"
-
-# ─────────────────── PAGES TO TEST ───────────────────────────────────────────
-# (role, url_path, allowed_http_status_codes)
-PAGES = [
-    # Public
-    ("public",  "/",                                [200, 302]),
-    ("public",  "/login/",                          [200]),
-
-    # Admin
-    ("admin",   "/admin-panel/",                    [200]),
-    ("admin",   "/admin-panel/manage-doctors/",     [200]),
-    ("admin",   "/admin-panel/doctors/add/",        [200]),
-
-    # Doctor
-    ("doctor",  "/dashboard/",                      [200]),
-    ("doctor",  "/patients/",                       [200]),
-    ("doctor",  "/patients/?q=test",                [200]),
-    ("doctor",  "/patients/?gender=male",           [200]),
-    ("doctor",  "/patients/add/",                   [200]),
-    ("doctor",  "/pending-visits/",                 [200]),
-    ("doctor",  "/search-patients/?q=a",            [200]),
-]
 
 # Patterns that indicate a Django error page (even if status == 200)
 ERROR_RE = re.compile(
@@ -65,13 +44,20 @@ def csrf(session, url):
 
 def login(session, username, password):
     url = f"{BASE_URL}/login/"
-    token = csrf(session, url)
-    resp = session.post(
-        url, allow_redirects=True, timeout=TIMEOUT,
-        data={"username": username, "password": password, "csrfmiddlewaretoken": token},
-        headers={"Referer": url},
-    )
-    return "/login/" not in resp.url or resp.status_code == 200
+    try:
+        token = csrf(session, url)
+        resp = session.post(
+            url, allow_redirects=True, timeout=TIMEOUT,
+            data={"username": username, "password": password, "csrfmiddlewaretoken": token},
+            headers={"Referer": url},
+        )
+        success = "/login/" not in resp.url and resp.status_code == 200
+        if not success:
+            print(f"  {YELLOW}DEBUG: Login failed for {username}. Final URL: {resp.url}, Status: {resp.status_code}{RESET}")
+        return success
+    except Exception as e:
+        print(f"  {RED}DEBUG: Login error for {username}: {e}{RESET}")
+        return False
 
 
 def check(session, path, expected):
@@ -79,6 +65,12 @@ def check(session, path, expected):
     try:
         r = session.get(url, allow_redirects=True, timeout=TIMEOUT)
         body = r.text
+        
+        # Detect if we were kicked out to the login page
+        if "/login/" in r.url and "/login/" not in path:
+            return {"url": url, "status": r.status_code, "expected": expected,
+                    "ok": False, "bad_body": False, "snippet": f"REDIRECTED TO LOGIN (unauthorized?)"}
+        
         bad_body = bool(ERROR_RE.search(body))
         ok = r.status_code in expected and not bad_body
         snippet = None
@@ -98,6 +90,22 @@ def check(session, path, expected):
                 "bad_body": False, "snippet": f"TIMEOUT after {TIMEOUT}s"}
 
 
+def get_first_ids(session):
+    """Hits the patient list to scrape the first available patient and visit ID."""
+    p_resp = session.get(f"{BASE_URL}/patients/", timeout=TIMEOUT)
+    # Corrected regex to find patient IDs
+    p_match = re.search(r'/patients/(\d+)/', p_resp.text)
+    p_id = p_match.group(1) if p_match else None
+    
+    v_id = None
+    if p_id:
+        d_resp = session.get(f"{BASE_URL}/patients/{p_id}/", timeout=TIMEOUT)
+        v_match = re.search(r'/visits/(\d+)/', d_resp.text)
+        v_id = v_match.group(1) if v_match else None
+        
+    return p_id, v_id
+
+
 def main():
     print(f"\n{BOLD}{CYAN}══════════════════════════════════════════")
     print(f"  MediTrack Page Health Check")
@@ -105,7 +113,6 @@ def main():
     print(f"══════════════════════════════════════════{RESET}\n")
 
     pub_s = requests.Session()
-
     adm_s = requests.Session()
     adm_ok = login(adm_s, ADMIN_USERNAME, ADMIN_PASSWORD)
     print(f"{GREEN}✓ Admin '{ADMIN_USERNAME}' logged in{RESET}" if adm_ok
@@ -116,6 +123,44 @@ def main():
     print(f"{GREEN}✓ Doctor '{DOCTOR_USERNAME}' logged in{RESET}" if doc_ok
           else f"{YELLOW}⚠ Doctor login FAILED — doctor pages will be skipped{RESET}")
     print()
+
+    # Dynamic ID discovery
+    p_id = None; v_id = None
+    if doc_ok:
+        p_id, v_id = get_first_ids(doc_s)
+        if p_id: print(f"{CYAN}ℹ Found Patient ID: {p_id}{RESET}")
+        if v_id: print(f"{CYAN}ℹ Found Visit ID: {v_id}{RESET}")
+        print()
+
+    # ─────────────────── PAGES TO TEST ───────────────────────────────────────
+    PAGES = [
+        ("public",  "/",                                [200, 302]),
+        ("public",  "/login/",                          [200]),
+        ("admin",   "/admin-panel/",                    [200]),
+        ("admin",   "/admin-panel/manage-doctors/",     [200]),
+        ("admin",   "/admin-panel/doctors/add/",        [200]),
+        ("doctor",  "/dashboard/",                      [200]),
+        ("doctor",  "/patients/",                       [200]),
+        ("doctor",  "/patients/?q=test",                [200]),
+        ("doctor",  "/patients/?gender=male",           [200]),
+        ("doctor",  "/patients/add/",                   [200]),
+        ("doctor",  "/pending-visits/",                 [200]),
+        ("doctor",  "/search-patients/?q=a",            [200]),
+    ]
+    
+    if p_id:
+        PAGES += [
+            ("doctor", f"/patients/{p_id}/",            [200]),
+            ("doctor", f"/patients/{p_id}/edit/",       [200]),
+            ("doctor", f"/patients/{p_id}/files/",      [200]),
+            ("doctor", f"/patients/{p_id}/add-visit/",  [200]),
+        ]
+    if v_id:
+        PAGES += [
+            ("doctor", f"/visits/{v_id}/",              [200]),
+            ("doctor", f"/visits/{v_id}/edit/",         [200]),
+            ("doctor", f"/visits/{v_id}/print/",        [200]),
+        ]
 
     sessions = {"public": pub_s, "admin": adm_s, "doctor": doc_s}
     available = {"public": True, "admin": adm_ok, "doctor": doc_ok}
@@ -153,15 +198,8 @@ def main():
         print(f"— {GREEN}All pages OK ✓{RESET}{BOLD} ══{RESET}")
     else:
         print(f"— {RED}{failed} FAILED ✗{RESET}{BOLD} ══{RESET}")
-        print(f"\n{RED}Failed pages:{RESET}")
-        for r in results:
-            if not r["ok"]:
-                print(f"  [{r['role']:6}]  {r['path']}")
-                if r["snippet"]:
-                    print(f"           → {r['snippet']}")
     print()
     sys.exit(0 if failed == 0 else 1)
-
 
 if __name__ == "__main__":
     main()

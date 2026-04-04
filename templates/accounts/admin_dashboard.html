@@ -15,8 +15,7 @@
             onchange="if(this.value)window.location.href='?doctor_filter='+this.value;else window.location.href='?'">
             <option value="">All Doctors</option>
             {% for doc in all_doctors %}
-            <option value="{{ doc.pk }}" {% if doctor_filter_id == doc.pk %}selected{% endif %}>{{
-                doc.doctor_profile.full_name|default:doc.username }}</option>
+            <option value="{{ doc.pk }}" {% if doctor_filter_id == doc.pk %}selected{% endif %}>{{         doc.doctor_profile.full_name|default:doc.username }}</option>
             {% endfor %}
         </select>
     </div>
@@ -133,8 +132,7 @@
             <thead>
                 <tr class="bg-gray-50">
                     {% for day in daily_breakdown %}
-                    <th class="text-center px-3 py-2 text-[10px] font-semibold text-muted uppercase">{{
-                        day.day_name|slice:":3" }}</th>
+                    <th class="text-center px-3 py-2 text-[10px] font-semibold text-muted uppercase">{{             day.day_name|slice:":3" }}</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -185,8 +183,7 @@
                         class="text-center px-3 py-2 text-sm font-bold {% if d.today_visits > 0 %}text-success{% else %}text-muted{% endif %}">
                         {{ d.today_visits }}</td>
                     <td class="text-center px-3 py-2 text-sm font-bold text-primary">{{ d.month_visits }}</td>
-                    <td class="px-3 py-2 text-xs text-muted">{% if d.last_active %}{{ d.last_active|date:"M d" }}{% else
-                        %}Never{% endif %}</td>
+                    <td class="px-3 py-2 text-xs text-muted">{% if d.last_active %}{{ d.last_active }}{%             else             %}Never{% endif %}</td>
                     <td class="text-center px-3 py-2">
                         {% if d.user.is_active %}
                         <span class="inline-flex items-center gap-1 text-[10px] font-medium text-green-700">
@@ -225,14 +222,12 @@
             <tbody class="divide-y divide-border">
                 {% for v in recent_visits %}
                 <tr>
-                    <td class="px-4 py-2 text-xs text-muted">{{ v.visit_date|date:"M d g:iA" }}</td>
+                    <td class="px-4 py-2 text-xs text-muted">{{ v.visit_date|date:"d/m/Y g:i A" }}</td>
                     <td class="px-4 py-2 text-sm font-medium text-textmain">{{ v.patient.name }}</td>
-                    <td class="px-4 py-2 text-xs text-muted">{{
-                        v.doctor.doctor_profile.full_name|default:v.doctor.username }}</td>
+                    <td class="px-4 py-2 text-xs text-muted">{{             v.doctor.doctor_profile.full_name|default:v.doctor.username }}</td>
                     <td class="px-4 py-2 text-xs text-muted max-w-[200px] truncate">{{ v.diagnosis|default:"—" }}</td>
                     <td class="px-4 py-2 text-center text-xs">
-                        {% with fc=v.files.all|length %}{% if fc > 0 %}<span class="badge badge-blue !text-[10px]">{{ fc
-                            }}</span>
+                        {% with fc=v.files.all|length %}{% if fc > 0 %}<span class="badge badge-blue !text-[10px]">{{ fc               }}</span>
                         {% else %}<span class="text-muted">&mdash;</span>{% endif %}{% endwith %}
                     </td>
                 </tr>

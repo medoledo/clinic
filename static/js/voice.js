@@ -1,253 +1,246 @@
 /**
- * voice.js — MediTrack Voice Transcription System
- * Uses Web Speech API (works in Chrome/Edge only)
+ * voice.js — MediTrack Voice Transcription System (Refined)
+ * Focused on field-level recording with a sticky status indicator.
  */
 (function () {
   'use strict';
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  // Elements
-  const masterBtn = document.getElementById('master-mic-btn');
-  const masterText = document.getElementById('master-mic-text');
-  const masterIcon = document.getElementById('master-mic-icon');
-  const waveAnim = document.getElementById('wave-animation');
-  const recordingStatus = document.getElementById('recording-status');
-  const voiceNotSupported = document.getElementById('voice-not-supported');
-  const micDeniedMsg = document.getElementById('mic-denied-msg');
-  const voiceNetworkMsg = document.getElementById('voice-network-msg');
-
   if (!SpeechRecognition) {
-    if (voiceNotSupported) voiceNotSupported.classList.remove('hidden');
+    document.getElementById('voice-not-supported')?.classList.remove('hidden');
     return;
   }
 
+  // State
   let recognition = null;
   let isRunning = false;
   let currentFieldId = null;
-  let interimSpan = null;
-  let currentLang = 'ar-EG';
+  let pendingFieldId = null;
+  let originalFieldValue = "";
+  let selectedLang = localStorage.getItem('meditrack_lang') || 'en-US';
 
-  // ── Language toggle ──
-  window.setLang = function (lang) {
-    currentLang = lang;
-    if (document.getElementById('lang-mix')) {
-      document.getElementById('lang-mix').className = lang === 'ar-EG' 
-        ? 'px-4 py-2 bg-primary text-white transition-colors' 
-        : 'px-4 py-2 bg-white text-muted hover:bg-gray-50 transition-colors';
-    }
-    if (document.getElementById('lang-ar')) {
-      document.getElementById('lang-ar').className = lang === 'ar-SA' 
-        ? 'px-4 py-2 bg-primary text-white transition-colors' 
-        : 'px-4 py-2 bg-white text-muted hover:bg-gray-50 transition-colors';
-    }
-    if (document.getElementById('lang-en')) {
-      document.getElementById('lang-en').className = lang === 'en-US' 
-        ? 'px-4 py-2 bg-primary text-white transition-colors' 
-        : 'px-4 py-2 bg-white text-muted hover:bg-gray-50 transition-colors';
-    }
-    if (isRunning && recognition) {
-      recognition.lang = lang;
-    }
-  };
+  // UI Elements
+  const recordingStatus = document.getElementById('recording-status');
+  const waveAnim = document.getElementById('wave-animation');
 
-  function createRecognition() {
-    const rec = new SpeechRecognition();
-    rec.lang = currentLang;
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.maxAlternatives = 1;
+  // Initialization
+  function initRecognition() {
+    recognition = new SpeechRecognition();
+    recognition.lang = selectedLang;
+    recognition.continuous = true;
+    recognition.interimResults = true;
 
-    rec.onresult = function (event) {
-      if (!currentFieldId) return;
-      const textarea = document.getElementById(currentFieldId);
-      if (!textarea) return;
+    recognition.onstart = () => {
+      isRunning = true;
+      updateStatusUI(true);
+    };
 
-      let interim = '';
-      let finalText = '';
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalText += result[0].transcript;
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        let transcriptText = event.results[i][0].transcript;
+        // Strip out punctuation (.,?!؛،؟)
+        transcriptText = transcriptText.replace(/[.,?!؛،؟]/g, '');
+        
+        if (event.results[i].isFinal) {
+          finalTranscript += transcriptText;
         } else {
-          interim += result[0].transcript;
+          interimTranscript += transcriptText;
         }
       }
 
-      // Append final text
-      if (finalText) {
-        const current = textarea.value;
-        textarea.value = (current ? current + ' ' : '') + finalText.trim();
-        if (interimSpan) interimSpan.remove();
-        interimSpan = null;
-      }
-
-      // Show interim in a span
-      if (interim) {
-        if (!interimSpan) {
-          interimSpan = document.createElement('span');
-          interimSpan.className = 'interim-text';
-          interimSpan.id = 'interim-preview';
+      if (currentFieldId) {
+        const field = document.getElementById(currentFieldId);
+        if (field) {
+          // REAL-TIME TRANSCRIPT RENDERING
+          if (finalTranscript) {
+              const space = field.value && !field.value.endsWith(' ') ? ' ' : '';
+              field.value += space + finalTranscript;
+          }
+          
+          // Interim text is diverted to the grey element below the field
+          let interimEl = document.getElementById(currentFieldId + '-interim');
+          if (interimEl) {
+              interimEl.innerText = interimTranscript ? interimTranscript : (finalTranscript ? '...' : '');
+          }
+          
+          field.dispatchEvent(new Event('input'));
+          
+          if (finalTranscript) {
+              finalTranscript = ''; 
+          }
         }
-        interimSpan.textContent = interim;
-        // show below textarea
-        const container = textarea.parentElement;
-        const existing = container.querySelector('#interim-preview');
-        if (!existing) container.appendChild(interimSpan);
       }
     };
 
-    rec.onerror = function (event) {
-      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        stopAll();
-        if (micDeniedMsg) micDeniedMsg.classList.remove('hidden');
-      } else if (event.error === 'network') {
-        stopAll();
-        if (voiceNetworkMsg) voiceNetworkMsg.classList.remove('hidden');
-      } else if (event.error === 'no-speech') {
-        // silence — auto-restart
-        if (isRunning) {
-          try { rec.start(); } catch (e) {}
-        }
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error', event.error);
+      if (event.error === 'not-allowed') {
+        document.getElementById('mic-denied-msg')?.classList.remove('hidden');
+      }
+      stopAll();
+    };
+
+    recognition.onend = () => {
+      if (pendingFieldId) {
+        // A field switch was queued! Start it up immediately.
+        const nextField = pendingFieldId;
+        pendingFieldId = null;
+        startRecording(nextField);
+      } else if (isRunning) {
+        // Restart if it stopped unexpectedly (e.g. silence or language toggle)
+        try { recognition.start(); } catch(e) {}
       } else {
-        const status = document.createElement('div');
-        status.className = 'text-danger text-xs mt-1';
-        status.textContent = 'Recognition error: ' + event.error + '. Try again.';
-        if (currentFieldId) {
-          const ta = document.getElementById(currentFieldId);
-          if (ta) ta.parentElement.appendChild(status);
-          setTimeout(() => status.remove(), 3000);
-        }
+        updateStatusUI(false);
       }
     };
-
-    rec.onend = function () {
-      if (interimSpan) interimSpan.remove();
-      interimSpan = null;
-      // Auto-restart if still should be running
-      if (isRunning && currentFieldId) {
-        try { rec.start(); } catch (e) {}
-      } else if (!isRunning) {
-        setMasterStopped();
-      }
-    };
-
-    return rec;
   }
 
   function startRecording(fieldId) {
-    if (recognition) {
-      try { recognition.stop(); } catch (e) {}
-    }
-    recognition = createRecognition();
-    isRunning = true;
-    currentFieldId = fieldId;
-
-    try {
-      recognition.start();
-    } catch (e) {
-      if (voiceNetworkMsg) voiceNetworkMsg.classList.remove('hidden');
-      isRunning = false;
+    if (isRunning) {
+      if (currentFieldId === fieldId) {
+        // Toggle OFF current field
+        stopAll();
+        return;
+      }
+      // Toggle TO new field
+      // We must stop the mic asynchronously, wait for onend, and then start the new field.
+      pendingFieldId = fieldId;
+      stopAll(); 
       return;
     }
 
-    setMasterRunning();
+    currentFieldId = fieldId;
+    const field = document.getElementById(fieldId);
+    if (field) {
+        originalFieldValue = field.value;
+        if (originalFieldValue && !originalFieldValue.endsWith(' ')) {
+            originalFieldValue += ' ';
+        }
+        
+        let interimEl = document.getElementById(fieldId + '-interim');
+        if (!interimEl) {
+            interimEl = document.createElement('div');
+            interimEl.id = fieldId + '-interim';
+            interimEl.className = 'text-gray-400 text-sm font-semibold italic mt-1.5 min-h-[20px] opacity-75';
+            field.parentNode.appendChild(interimEl);
+        }
+        interimEl.innerText = 'Listening...';
+        interimEl.style.display = 'block';
+    } else {
+        originalFieldValue = "";
+    }
+
+    if (!recognition) initRecognition();
+
     highlightField(fieldId);
+    try {
+        recognition.lang = selectedLang;
+        recognition.start();
+    } catch(e) {}
   }
 
   function stopAll() {
     isRunning = false;
+    if (currentFieldId) {
+        let interimEl = document.getElementById(currentFieldId + '-interim');
+        if (interimEl) interimEl.remove();
+    }
     currentFieldId = null;
     if (recognition) {
-      try { recognition.stop(); } catch (e) {}
-      recognition = null;
+        try { recognition.stop(); } catch(e) {}
     }
-    if (interimSpan) { interimSpan.remove(); interimSpan = null; }
-    setMasterStopped();
     unhighlightAll();
-    document.querySelectorAll('.mic-btn.recording').forEach(b => {
-      b.classList.remove('recording');
-      b.textContent = '🎤';
-    });
+    updateStatusUI(false);
   }
 
-  function setMasterRunning() {
-    if (!masterBtn) return;
-    masterBtn.classList.add('!border-danger', '!text-danger', '!bg-red-50');
-    masterIcon.textContent = '🔴';
-    masterText.textContent = 'Stop Recording';
-    if (waveAnim) waveAnim.classList.remove('hidden');
-    waveAnim.classList.add('flex');
-    if (recordingStatus) recordingStatus.classList.remove('hidden');
-  }
-
-  function setMasterStopped() {
-    if (!masterBtn) return;
-    masterBtn.classList.remove('!border-danger', '!text-danger', '!bg-red-50');
-    masterIcon.textContent = '🎤';
-    masterText.textContent = 'Start Recording';
-    if (waveAnim) { waveAnim.classList.add('hidden'); waveAnim.classList.remove('flex'); }
-    if (recordingStatus) recordingStatus.classList.add('hidden');
+  function updateStatusUI(active) {
+    if (active) {
+      recordingStatus?.classList.remove('hidden');
+      waveAnim?.classList.remove('hidden');
+      waveAnim?.classList.add('flex');
+    } else {
+      recordingStatus?.classList.add('hidden');
+      waveAnim?.classList.add('hidden');
+      waveAnim?.classList.remove('flex');
+    }
   }
 
   function highlightField(fieldId) {
     unhighlightAll();
     const el = document.getElementById(fieldId);
     if (el) el.classList.add('voice-active');
-    // Mark the correct mic button
-    document.querySelectorAll('.field-mic').forEach(b => {
-      if (b.dataset.target === fieldId) {
-        b.classList.add('recording');
-        b.textContent = '🔴';
+
+    document.querySelectorAll('.field-mic').forEach(btn => {
+      if (btn.dataset.target === fieldId) {
+        btn.classList.add('recording');
+        btn.innerHTML = '<svg class="w-4 h-4 text-red-500 animate-pulse" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5"/></svg>'; 
       } else {
-        b.classList.remove('recording');
-        b.textContent = '🎤';
+        btn.classList.remove('recording');
+        btn.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2.07z" clip-rule="evenodd"/></svg>';
       }
     });
   }
 
   function unhighlightAll() {
     document.querySelectorAll('.form-textarea').forEach(ta => ta.classList.remove('voice-active'));
+    document.querySelectorAll('.field-mic').forEach(btn => {
+      btn.classList.remove('recording');
+      btn.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2.07z" clip-rule="evenodd"/></svg>';
+    });
   }
 
-  // Master mic button
-  if (masterBtn) {
-    masterBtn.addEventListener('click', () => {
+  // Global Language Setter
+  window.setLang = function (lang) {
+    selectedLang = lang;
+    localStorage.setItem('meditrack_lang', lang);
+    if (recognition) {
+      recognition.lang = lang;
       if (isRunning) {
-        stopAll();
-      } else {
-        // Start on first field
-        const firstMic = document.querySelector('.field-mic');
-        const firstField = firstMic ? firstMic.dataset.target : null;
-        if (firstField) startRecording(firstField);
-        else startRecording('chief_complaint');
+        // Stop current recognition, `onend` will automatically restart it because `isRunning` is true
+        try { recognition.stop(); } catch(e) {}
       }
-    });
-  }
-
-  // Per-field mic buttons
-  document.querySelectorAll('.field-mic').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const fieldId = btn.dataset.target;
-      if (currentFieldId === fieldId && isRunning) {
-        stopAll();
+    }
+    // UI Toggle Update
+    const btnEn = document.getElementById('lang-en');
+    const btnAr = document.getElementById('lang-ar');
+    
+    if (btnEn && btnAr) {
+      if (lang === 'en-US') {
+        btnEn.className = 'px-5 py-2.5 bg-primary text-white font-bold transition-all';
+        btnAr.className = 'px-5 py-2.5 bg-white text-muted hover:bg-gray-50 font-bold transition-all';
       } else {
-        startRecording(fieldId);
+        btnAr.className = 'px-5 py-2.5 bg-primary text-white font-bold transition-all';
+        btnEn.className = 'px-5 py-2.5 bg-white text-muted hover:bg-gray-50 font-bold transition-all';
       }
-    });
-  });
-
-  // Keyboard: ESC stops
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && isRunning) stopAll();
-  });
-
-  // Expose for shortcuts.js
-  window._voiceToggle = function () {
-    if (isRunning) stopAll();
-    else if (masterBtn) masterBtn.click();
+    }
   };
 
-  // Auto-stop after 10s of silence handled by onerror 'no-speech' + recognition.maxResults
+  // Button Listeners
+  document.querySelectorAll('.field-mic').forEach(btn => {
+    btn.addEventListener('click', () => {
+      startRecording(btn.dataset.target);
+    });
+  });
+
+  // Init lang UI from storage
+  window.addEventListener('DOMContentLoaded', () => {
+    window.setLang(selectedLang);
+  });
+
+  // Global Hotkey for Language Toggling (Ctrl + Space)
+  document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.code === 'Space') {
+          e.preventDefault();
+          const currentLang = localStorage.getItem('meditrack_lang') || 'en-US';
+          const newLang = currentLang === 'en-US' ? 'ar-EG' : 'en-US';
+          if (window.setLang) {
+              window.setLang(newLang);
+          }
+      }
+      if (e.key === 'Escape' && isRunning) stopAll();
+  });
+
 })();

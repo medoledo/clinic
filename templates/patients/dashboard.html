@@ -48,6 +48,19 @@
 {% block extra_js %}
 <script src="{% static 'js/search.js' %}"></script>
 <script>
+    function initModalFlatpickr(containerId) {
+        const container = document.getElementById(containerId);
+        const dobInput = container.querySelector('#dob-input');
+        if (dobInput && typeof flatpickr !== 'undefined') {
+            flatpickr(dobInput, {
+                dateFormat: "Y-m-d",allowInput: true,
+                onChange: function (selectedDates, dateStr) {
+                    if (typeof calcAge === 'function') calcAge(dateStr);
+                }
+            });
+        }
+    }
+
     document.getElementById('dashboard-search').focus();
 
     function getCookie(name) {
@@ -135,6 +148,7 @@
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         }).then(function (r) { return r.text(); }).then(function (html) {
             document.getElementById('add-patient-form-container').innerHTML = html;
+            initModalFlatpickr('add-patient-form-container');
             openModal('add-patient-modal');
         });
     }
@@ -167,6 +181,7 @@
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         }).then(function (r) { return r.text(); }).then(function (html) {
             document.getElementById('edit-patient-form-container').innerHTML = html;
+            initModalFlatpickr('edit-patient-form-container');
             openModal('edit-patient-modal');
         });
     }
@@ -268,7 +283,8 @@
                 </svg>
             </button>
         </div>
-        <p class="text-sm text-muted mb-2">Are you sure you want to delete <strong id="delete-patient-name"></strong>?</p>
+        <p class="text-sm text-muted mb-2">Are you sure you want to delete <strong id="delete-patient-name"></strong>?
+        </p>
         <p class="text-sm text-danger mb-6">This will also delete all visits and files for this patient.</p>
         <form id="delete-patient-form" onsubmit="submitDeletePatient(event)">
             {% csrf_token %}
@@ -278,7 +294,8 @@
                     <span id="delete-submit-text">Delete</span>
                     <span id="delete-submit-spinner" class="hidden spinner"></span>
                 </button>
-                <button type="button" onclick="closeModal('delete-patient-modal')" class="btn btn-secondary">Cancel</button>
+                <button type="button" onclick="closeModal('delete-patient-modal')"
+                    class="btn btn-secondary">Cancel</button>
             </div>
         </form>
     </div>
@@ -295,7 +312,11 @@
         justify-content: center;
         animation: fadeIn 0.2s ease;
     }
-    .modal-overlay.hidden { display: none; }
+
+    .modal-overlay.hidden {
+        display: none;
+    }
+
     .modal-content {
         background: white;
         border-radius: 12px;
@@ -306,7 +327,27 @@
         overflow-y: auto;
         animation: slideUp 0.2s ease;
     }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
 </style>
 {% endblock %}

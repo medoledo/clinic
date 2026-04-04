@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date, parse_datetime
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.views.decorators.http import require_GET
@@ -149,6 +149,22 @@ def patient_detail(request, pk):
     return render(request, 'patients/patient_detail.html', context)
 
 
+@doctor_required
+def patient_files(request, pk):
+    patient = get_object_or_404(Patient, pk=pk, doctor=request.user)
+    
+    # Get all files and links for this patient, grouped by visit
+    files = VisitFile.objects.filter(
+        visit__patient=patient
+    ).select_related('visit').order_by('-visit__visit_date', '-uploaded_at')
+    
+    context = {
+        'patient': patient,
+        'files': files,
+    }
+    return render(request, 'patients/patient_files.html', context)
+
+
 # ─────────────────────────── Add / Edit Patient ───────────────────────────────
 
 @doctor_required
@@ -167,7 +183,7 @@ def add_patient(request):
                 'patient_name': patient.name,
                 'patient_phone': patient.phone,
                 'patient_gender': patient.gender,
-                'patient_dob': patient.date_of_birth.isoformat() if patient.date_of_birth else None,
+                'patient_dob': str(patient.date_of_birth) if patient.date_of_birth else None,
             })
         patient = Patient(doctor=request.user)
         error = _fill_patient_from_post(patient, request.POST)
@@ -201,7 +217,7 @@ def edit_patient(request, pk):
                 'patient_name': patient.name,
                 'patient_phone': patient.phone,
                 'patient_gender': patient.gender,
-                'patient_dob': patient.date_of_birth.isoformat() if patient.date_of_birth else None,
+                'patient_dob': str(patient.date_of_birth) if patient.date_of_birth else None,
             })
         error = _fill_patient_from_post(patient, request.POST)
         if error:
@@ -239,7 +255,12 @@ def _fill_patient_from_post(patient, post):
     patient.name = name
     patient.phone = post.get('phone', '').strip()[:20]
     dob = post.get('date_of_birth', '').strip()
-    patient.date_of_birth = dob if dob else None
+    if dob:
+        from django.utils.dateparse import parse_date
+        parsed_dob = parse_date(dob)
+        patient.date_of_birth = parsed_dob if parsed_dob else None
+    else:
+        patient.date_of_birth = None
     gender = post.get('gender', 'male')
     patient.gender = gender if gender in ('male', 'female') else 'male'
     patient.notes = post.get('notes', '').strip()
@@ -253,13 +274,29 @@ def add_visit(request, pk):
     patient = get_object_or_404(Patient, pk=pk, doctor=request.user)
 
     if request.method == 'POST':
-        chief_complaint = request.POST.get('chief_complaint', '').strip()
-        if not chief_complaint:
-            messages.error(request, 'Chief complaint is required.')
+        # Collect all clinical fields
+        fields_to_check = [
+            request.POST.get('chief_complaint', '').strip(),
+            request.POST.get('symptoms', '').strip(),
+            request.POST.get('diagnosis', '').strip(),
+            request.POST.get('treatment', '').strip(),
+            request.POST.get('temperature', '').strip(),
+            request.POST.get('blood_pressure', '').strip(),
+            request.POST.get('pulse', '').strip(),
+            request.POST.get('weight', '').strip(),
+        ]
+        
+        # Check if at least one field is filled
+        if not any(fields_to_check):
+            messages.error(request, 'Please fill at least one clinical field to save the visit.')
             return render(request, 'patients/add_visit.html', {
                 'patient': patient,
                 'post': request.POST,
+                'visit': Visit(patient=patient, doctor=request.user),
+                'is_edit': False,
             })
+        
+        chief_complaint = request.POST.get('chief_complaint', '').strip()
 
         # Parse visit date safely
         visit_date_str = request.POST.get('visit_date', '').strip()
@@ -390,9 +427,20 @@ def edit_visit(request, pk):
     patient = visit.patient
 
     if request.method == 'POST':
-        chief_complaint = request.POST.get('chief_complaint', '').strip()
-        if not chief_complaint:
-            messages.error(request, 'Chief complaint is required.')
+        # Collect all clinical fields
+        fields_to_check = [
+            request.POST.get('chief_complaint', '').strip(),
+            request.POST.get('symptoms', '').strip(),
+            request.POST.get('diagnosis', '').strip(),
+            request.POST.get('treatment', '').strip(),
+            request.POST.get('temperature', '').strip(),
+            request.POST.get('blood_pressure', '').strip(),
+            request.POST.get('pulse', '').strip(),
+            request.POST.get('weight', '').strip(),
+        ]
+        
+        if not any(fields_to_check):
+            messages.error(request, 'Please fill at least one clinical field to save the visit.')
             return render(request, 'patients/add_visit.html', {
                 'patient': patient,
                 'visit': visit,
@@ -400,6 +448,8 @@ def edit_visit(request, pk):
                 'is_edit': True,
                 'now': timezone.now()
             })
+        
+        chief_complaint = request.POST.get('chief_complaint', '').strip()
 
         visit_date_str = request.POST.get('visit_date', '').strip()
         if visit_date_str:

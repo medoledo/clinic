@@ -29,22 +29,25 @@ def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
-        remember_me = request.POST.get('remember_me')
+        
 
         if not username or not password:
             messages.error(request, 'Username and password are required.')
             return render(request, 'accounts/login.html')
 
+        try:
+            temp_user = User.objects.get(username=username)
+            if not temp_user.is_active and temp_user.check_password(password):
+                messages.error(request, "Your account is currently inactive. Please wait for Admin approval, or contact the administration.")
+                return render(request, 'accounts/login.html')
+        except User.DoesNotExist:
+            pass
+
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            if not user.is_active:
-                messages.error(request, 'Your account has been deactivated. Contact admin.')
-                return render(request, 'accounts/login.html')
-
             login(request, user)
 
-            # Session expiry: 30 days if remember-me, else session-only
-            request.session.set_expiry(60 * 60 * 24 * 30 if remember_me else 0)
+            
 
             try:
                 role = user.profile.role
@@ -505,3 +508,42 @@ def delete_doctor(request, pk):
         return JsonResponse({'success': True, 'message': f'Doctor "{full_name}" deleted successfully.'})
 
     return render(request, 'accounts/confirm_delete.html', {'doctor_user': doctor_user})
+
+
+
+def register(request):
+    """Doctor registration page. Inactive by default until admin approves."""
+    if request.user.is_authenticated:
+        return redirect('login')
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()[:150]
+        password = request.POST.get('password', '').strip()
+        full_name = request.POST.get('full_name', '').strip()[:200]
+        specialization = request.POST.get('specialization', '').strip()[:200]
+        phone = request.POST.get('phone', '').strip()[:20]
+
+        if not username or not password or not full_name:
+            messages.error(request, 'Please fill out all required fields.')
+            return render(request, 'accounts/register.html')
+            
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Username is already taken.')
+            return render(request, 'accounts/register.html')
+
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            is_active=False,  # Needs admin approval
+        )
+        UserProfile.objects.create(user=user, role='doctor')
+        DoctorProfile.objects.create(
+            user=user,
+            full_name=full_name,
+            specialization=specialization,
+            phone=phone,
+        )
+        messages.success(request, 'Registration successful! Your account is pending admin approval.')
+        return redirect('login')
+
+    return render(request, 'accounts/register.html')

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Visit — {{ visit.patient.name }} — {{ visit.visit_date|date:"Y-m-d" }}</title>
+    <title>Visit — {{ visit.patient.name }} — {{ visit.visit_date }}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
@@ -110,12 +110,9 @@
 
     <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px;margin-bottom:16px">
         <div class="row"><span class="label">Patient</span><span class="value">{{ visit.patient.name }}</span></div>
-        <div class="row"><span class="label">Gender</span><span class="value">{{ visit.patient.get_gender_display
-                }}</span></div>
-        {% if visit.patient.date_of_birth %}<div class="row"><span class="label">Age</span><span class="value">{{
-                visit.patient.age }} years</span></div>{% endif %}
-        <div class="row"><span class="label">Visit Date</span><span class="value">{{ visit.visit_date|date:"l, F d, Y —
-                g:i A" }}</span></div>
+        <div class="row"><span class="label">Gender</span><span class="value">{{ visit.patient.get_gender_display }}</span></div>
+        {% if visit.patient.date_of_birth %}<div class="row"><span class="label">Age</span><span class="value">{{ visit.patient.age }} years</span></div>{% endif %}
+        <div class="row"><span class="label">Visit Date</span><span class="value">{{ visit.visit_date|date:"l, F d, Y — g:i A" }}</span></div>
     </div>
 
     {% if visit.temperature or visit.blood_pressure or visit.pulse or visit.weight %}
@@ -149,7 +146,7 @@
     {% if visit.treatment %}<h2>Treatment / Prescription</h2>
     <p class="text">{{ visit.treatment }}</p>{% endif %}
     {% if visit.next_checkup_date %}<h2>Next Checkup</h2>
-    <p class="text">{{ visit.next_checkup_date|date:"F d, Y" }}</p>{% endif %}
+    <p class="text">{{ visit.next_checkup_date }}</p>{% endif %}
 
     <div style="margin-top:30px;border-top:1px solid #E2E8F0;padding-top:12px;color:#64748B;font-size:11px">
         Printed on {% now "F d, Y" %} · MediTrack Visit Records System
