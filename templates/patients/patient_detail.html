@@ -48,15 +48,14 @@
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 mt-5 pt-5 border-t border-border text-sm">
         {% if patient.phone %}
-        <div><span class="text-muted text-xs block mb-0.5">Phone</span><span class="font-medium">{{ patient.phone         }}</span></div>
+        <div><span class="text-muted text-xs block mb-0.5">Phone</span><span class="font-medium">{{ patient.phone }}</span></div>
         {% endif %}
         {% if patient.date_of_birth %}
-        <div><span class="text-muted text-xs block mb-0.5">Date of Birth</span><span class="font-medium">{{         patient.date_of_birth }}</span></div>
-        <div><span class="text-muted text-xs block mb-0.5">Age</span><span class="font-medium">{{ patient.age }} years
-                old</span></div>
+        <div><span class="text-muted text-xs block mb-0.5">Date of Birth</span><span class="font-medium">{{ patient.date_of_birth|date:"F j, Y" }}</span></div>
+        <div><span class="text-muted text-xs block mb-0.5">Age</span><span class="font-medium">{{ patient.age }} years old</span></div>
         {% endif %}
-        <div><span class="text-muted text-xs block mb-0.5">Total Visits</span><span class="font-bold text-primary">{{         patient.total_visits }}</span></div>
-        <div><span class="text-muted text-xs block mb-0.5">Patient Since</span><span class="font-medium">{{         patient.created_at }}</span></div>
+        <div><span class="text-muted text-xs block mb-0.5">Total Visits</span><span class="font-bold text-primary">{{ patient.total_visits }}</span></div>
+        <div><span class="text-muted text-xs block mb-0.5">Patient Since</span><span class="font-medium">{{ patient.created_at|date:"F j, Y" }}</span></div>
     </div>
     {% if patient.notes %}
     <div class="mt-4 pt-4 border-t border-border">
@@ -91,8 +90,7 @@
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-semibold text-sm text-textmain">{{ visit.visit_date }} &mdash;
-                            {{ visit.visit_date|date:"g:i A" }}</span>
+                        <span class="font-semibold text-sm text-textmain">{{ visit.visit_date|date:"F j, Y" }} &mdash; {{ visit.visit_date|date:"g:i A" }}</span>
                         {% if visit.has_files %}<span class="badge badge-blue !text-xs">&#128206; Files</span>{% endif %}
                     </div>
                     <p class="text-xs text-muted mt-0.5 truncate">{{ visit.chief_complaint }}</p>
@@ -136,12 +134,67 @@
         const container = document.getElementById(containerId);
         const dobInput = container.querySelector('#dob-input');
         if (dobInput && typeof flatpickr !== 'undefined') {
-            flatpickr(dobInput, {
-                dateFormat: "Y-m-d",allowInput: true,
-                onChange: function (selectedDates, dateStr) {
-                    if (typeof calcAge === 'function') calcAge(dateStr);
+            const fpDob = flatpickr(dobInput, {
+                altInput: true,
+                altFormat: "m/d/Y",
+                dateFormat: "Y-m-d",
+                allowInput: true,
+                disableMobile: false,
+                onChange: function(selectedDates, dateStr) {
+                    const ageDisplay = container.querySelector('#age-display');
+                    if (!ageDisplay || !dateStr) { if(ageDisplay) ageDisplay.style.display='none'; return; }
+                    const birth = new Date(dateStr);
+                    if (isNaN(birth.getTime())) { ageDisplay.style.display='none'; return; }
+                    const today = new Date();
+                    let age = today.getFullYear() - birth.getFullYear();
+                    const m = today.getMonth() - birth.getMonth();
+                    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+                    if (age >= 0 && age < 150) {
+                        ageDisplay.style.display = 'block';
+                        ageDisplay.textContent = 'Age: ' + age + ' years old';
+                    } else { ageDisplay.style.display = 'none'; }
                 }
             });
+
+            if (fpDob && fpDob.altInput) {
+                fpDob.altInput.placeholder = "mm/dd/yyyy";
+
+                // ── Input mask: digits only, auto-insert "/" ──
+                fpDob.altInput.addEventListener('input', function(e) {
+                    var pos = this.selectionStart;
+                    var raw = this.value.replace(/\D/g, '').slice(0, 8); // max 8 digits
+                    var masked = '';
+                    if (raw.length > 4) {
+                        masked = raw.slice(0, 2) + '/' + raw.slice(2, 4) + '/' + raw.slice(4);
+                    } else if (raw.length > 2) {
+                        masked = raw.slice(0, 2) + '/' + raw.slice(2);
+                    } else {
+                        masked = raw;
+                    }
+                    this.value = masked;
+                    // Restore cursor position accounting for inserted slashes
+                    var slashesBeforeOld = (this.value.slice(0, pos).match(/\//g) || []).length;
+                    this.setSelectionRange(pos + slashesBeforeOld, pos + slashesBeforeOld);
+                });
+
+                // Block non-digit keys except control keys
+                fpDob.altInput.addEventListener('keydown', function(e) {
+                    var allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'];
+                    if (allowed.includes(e.key)) return;
+                    if (!/^\d$/.test(e.key)) e.preventDefault();
+                });
+
+                // On blur: parse the typed date and tell Flatpickr
+                fpDob.altInput.addEventListener('blur', function() {
+                    var parts = this.value.split('/');
+                    if (parts.length === 3 && parts[2].length === 4) {
+                        var d = new Date(parts[2] + '-' + parts[0].padStart(2,'0') + '-' + parts[1].padStart(2,'0'));
+                        if (!isNaN(d.getTime())) {
+                            fpDob.setDate(d, true);
+                        }
+                    }
+                });
+            }
         }
     }
 

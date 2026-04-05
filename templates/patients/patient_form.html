@@ -20,8 +20,8 @@
             </div>
             <div>
                 <label class="form-label">Date of Birth</label>
-                <input name="date_of_birth" type="text" class="form-input" id="dob-input"
-                    value="{{ patient.date_of_birth|default:'' }}"  />
+                <input name="date_of_birth" type="date" class="form-input" id="dob-input"
+                    value="{{ patient.date_of_birth|date:'Y-m-d'|default:'' }}" />
                 <p id="age-display" class="text-xs text-primary font-semibold mt-1.5" style="display:none"></p>
             </div>
             <div>
@@ -62,28 +62,27 @@
 
             // Initialize Flatpickr for DOB
             if (typeof flatpickr !== 'undefined') {
-                flatpickr(dobInput, {
-                    dateFormat: "Y-m-d",allowInput: true,
+                var fpDob = flatpickr(dobInput, {
+                    altInput: true,
+                    altFormat: "m/d/Y",
+                    dateFormat: "Y-m-d",
+                    allowInput: true,
+                    disableMobile: false,
                     onChange: function (selectedDates, dateStr) {
                         calcAge(dateStr);
                     }
                 });
+                // Set placeholder on the alt input
+                if (fpDob.altInput) fpDob.altInput.placeholder = "mm/dd/yyyy";
             }
 
             function calcAge(dateStr) {
-                var val = dateStr || dobInput.value;
+                // dateStr will be Y-m-d due to dateFormat
+                var val = dateStr || (dobInput._flatpickr ? dobInput._flatpickr.input.value : dobInput.value);
                 if (!val) { ageDisplay.style.display = 'none'; return; }
 
-                // Handle dd/mm/yyyy parsing for JS Date
-                var parts = val.split('/');
-                if (parts.length !== 3) { ageDisplay.style.display = 'none'; return; }
-
-                var day = parseInt(parts[0], 10);
-                var month = parseInt(parts[1], 10) - 1;
-                var year = parseInt(parts[2], 10);
-
+                var birth = new Date(val);
                 var today = new Date();
-                var birth = new Date(year, month, day);
 
                 if (isNaN(birth.getTime())) { ageDisplay.style.display = 'none'; return; }
 

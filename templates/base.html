@@ -710,7 +710,12 @@
         document.addEventListener('DOMContentLoaded', function () {
             if (typeof flatpickr !== 'undefined') {
                 flatpickr("input[type=date]", {
+                    altInput: true,
+                    altFormat: "m/d/Y",
                     dateFormat: "Y-m-d",
+                    allowInput: true,
+                    disableMobile: false,
+                    onReady: function(sd, ds, fp) { if(fp.altInput) fp.altInput.placeholder="mm/dd/yyyy"; }
                 });
             }
         });

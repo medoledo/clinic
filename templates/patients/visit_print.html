@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Visit — {{ visit.patient.name }} — {{ visit.visit_date }}</title>
+    <title>Visit &mdash; {{ visit.patient.name }} &mdash; {{ visit.visit_date|date:"F j, Y" }}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
@@ -86,71 +86,205 @@
             white-space: pre-wrap;
         }
 
+        /* Signature area */
+        .signature-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #E2E8F0;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .signature-box {
+            text-align: center;
+            width: 260px;
+        }
+
+        .signature-line {
+            border-top: 1.5px solid #0F172A;
+            margin-bottom: 6px;
+        }
+
+        .signature-name {
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .signature-label {
+            color: #64748B;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        /* ── Field selector (screen only) ── */
+        .field-selector {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+        }
+
+        .field-selector h3 {
+            font-size: 12px;
+            font-weight: 700;
+            color: #2563EB;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 10px;
+        }
+
+        .field-selector label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 14px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            color: #334155;
+        }
+
+        .field-selector input[type="checkbox"] {
+            accent-color: #2563EB;
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Print rules */
         @media print {
-            button {
+            button,
+            .field-selector {
                 display: none !important;
             }
 
             body {
                 padding: 15px;
             }
+
+            .printable-section {
+                /* visibility controlled by JS before print */
+            }
         }
     </style>
 </head>
 
 <body>
+    <!-- Top bar: title + print button -->
     <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px">
         <div>
             <h1>Medical Visit Summary</h1>
-            <p style="color:#64748B;font-size:12px">MediTrack · Confidential</p>
+            <p style="color:#64748B;font-size:12px">MediTrack &middot; Confidential</p>
         </div>
         <button onclick="window.print()"
             style="padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Print</button>
     </div>
 
+    <!-- ── Field selector (hidden on print) ── -->
+    <div class="field-selector">
+        <h3>&#10003; Choose sections to print</h3>
+        <label><input type="checkbox" id="chk-vitals" checked onchange="toggle('sec-vitals',this)"> Vital Signs</label>
+        <label><input type="checkbox" id="chk-complaint" checked onchange="toggle('sec-complaint',this)"> Chief Complaint</label>
+        <label><input type="checkbox" id="chk-symptoms" checked onchange="toggle('sec-symptoms',this)"> Symptoms</label>
+        <label><input type="checkbox" id="chk-diagnosis" checked onchange="toggle('sec-diagnosis',this)"> Diagnosis</label>
+        <label><input type="checkbox" id="chk-treatment" checked onchange="toggle('sec-treatment',this)"> Treatment</label>
+        <label><input type="checkbox" id="chk-checkup" checked onchange="toggle('sec-checkup',this)"> Next Checkup</label>
+    </div>
+
+    <!-- Patient & Visit info -->
     <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px;margin-bottom:16px">
         <div class="row"><span class="label">Patient</span><span class="value">{{ visit.patient.name }}</span></div>
         <div class="row"><span class="label">Gender</span><span class="value">{{ visit.patient.get_gender_display }}</span></div>
         {% if visit.patient.date_of_birth %}<div class="row"><span class="label">Age</span><span class="value">{{ visit.patient.age }} years</span></div>{% endif %}
-        <div class="row"><span class="label">Visit Date</span><span class="value">{{ visit.visit_date|date:"l, F d, Y — g:i A" }}</span></div>
+        <div class="row"><span class="label">Visit Date</span><span class="value">{{ visit.visit_date|date:"l, F j, Y" }} &mdash; {{ visit.visit_date|date:"g:i A" }}</span></div>
+        <div class="row"><span class="label">Attending Doctor</span><span class="value">
+            {% if visit.doctor.doctor_profile.full_name %}Dr. {{ visit.doctor.doctor_profile.full_name }}{% elif visit.doctor.get_full_name %}Dr. {{ visit.doctor.get_full_name }}{% else %}Dr. {{ visit.doctor.username }}{% endif %}
+        </span></div>
     </div>
 
+    <!-- Vital Signs -->
     {% if visit.temperature or visit.blood_pressure or visit.pulse or visit.weight %}
-    <h2>Vital Signs</h2>
-    <div class="vitals">
-        {% if visit.temperature %}<div class="vital-box">
-            <div class="vital-val">{{ visit.temperature }}°C</div>
-            <div class="vital-lbl">Temperature</div>
-        </div>{% endif %}
-        {% if visit.blood_pressure %}<div class="vital-box">
-            <div class="vital-val">{{ visit.blood_pressure }}</div>
-            <div class="vital-lbl">Blood Pressure</div>
-        </div>{% endif %}
-        {% if visit.pulse %}<div class="vital-box">
-            <div class="vital-val">{{ visit.pulse }}</div>
-            <div class="vital-lbl">Pulse (bpm)</div>
-        </div>{% endif %}
-        {% if visit.weight %}<div class="vital-box">
-            <div class="vital-val">{{ visit.weight }} kg</div>
-            <div class="vital-lbl">Weight</div>
-        </div>{% endif %}
+    <div id="sec-vitals" class="printable-section">
+        <h2>Vital Signs</h2>
+        <div class="vitals">
+            {% if visit.temperature %}<div class="vital-box">
+                <div class="vital-val">{{ visit.temperature }}&deg;C</div>
+                <div class="vital-lbl">Temperature</div>
+            </div>{% endif %}
+            {% if visit.blood_pressure %}<div class="vital-box">
+                <div class="vital-val">{{ visit.blood_pressure }}</div>
+                <div class="vital-lbl">Blood Pressure</div>
+            </div>{% endif %}
+            {% if visit.pulse %}<div class="vital-box">
+                <div class="vital-val">{{ visit.pulse }}</div>
+                <div class="vital-lbl">Pulse (bpm)</div>
+            </div>{% endif %}
+            {% if visit.weight %}<div class="vital-box">
+                <div class="vital-val">{{ visit.weight }} kg</div>
+                <div class="vital-lbl">Weight</div>
+            </div>{% endif %}
+        </div>
     </div>
     {% endif %}
 
-    {% if visit.chief_complaint %}<h2>Chief Complaint</h2>
-    <p class="text">{{ visit.chief_complaint }}</p>{% endif %}
-    {% if visit.symptoms %}<h2>Symptoms</h2>
-    <p class="text">{{ visit.symptoms }}</p>{% endif %}
-    {% if visit.diagnosis %}<h2>Diagnosis</h2>
-    <p class="text">{{ visit.diagnosis }}</p>{% endif %}
-    {% if visit.treatment %}<h2>Treatment / Prescription</h2>
-    <p class="text">{{ visit.treatment }}</p>{% endif %}
-    {% if visit.next_checkup_date %}<h2>Next Checkup</h2>
-    <p class="text">{{ visit.next_checkup_date }}</p>{% endif %}
-
-    <div style="margin-top:30px;border-top:1px solid #E2E8F0;padding-top:12px;color:#64748B;font-size:11px">
-        Printed on {% now "F d, Y" %} · MediTrack Visit Records System
+    {% if visit.chief_complaint %}
+    <div id="sec-complaint" class="printable-section">
+        <h2>Chief Complaint</h2>
+        <p class="text">{{ visit.chief_complaint }}</p>
     </div>
+    {% endif %}
+
+    {% if visit.symptoms %}
+    <div id="sec-symptoms" class="printable-section">
+        <h2>Symptoms</h2>
+        <p class="text">{{ visit.symptoms }}</p>
+    </div>
+    {% endif %}
+
+    {% if visit.diagnosis %}
+    <div id="sec-diagnosis" class="printable-section">
+        <h2>Diagnosis</h2>
+        <p class="text">{{ visit.diagnosis }}</p>
+    </div>
+    {% endif %}
+
+    {% if visit.treatment %}
+    <div id="sec-treatment" class="printable-section">
+        <h2>Treatment / Prescription</h2>
+        <p class="text">{{ visit.treatment }}</p>
+    </div>
+    {% endif %}
+
+    {% if visit.next_checkup_date %}
+    <div id="sec-checkup" class="printable-section">
+        <h2>Next Checkup</h2>
+        <p class="text">{{ visit.next_checkup_date|date:"F j, Y" }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Signature -->
+    <div class="signature-section">
+        <div class="signature-box">
+            <div style="height:48px"></div>
+            <div class="signature-line"></div>
+            <div class="signature-name">
+                {% if visit.doctor.doctor_profile.full_name %}Dr. {{ visit.doctor.doctor_profile.full_name }}{% elif visit.doctor.get_full_name %}Dr. {{ visit.doctor.get_full_name }}{% else %}Dr. {{ visit.doctor.username }}{% endif %}
+            </div>
+            <div class="signature-label">Doctor's Signature</div>
+        </div>
+    </div>
+
+    <div style="margin-top:24px;border-top:1px solid #E2E8F0;padding-top:12px;color:#64748B;font-size:11px">
+        Printed on {% now "F j, Y" %} &middot; MediTrack Visit Records System
+    </div>
+
+    <script>
+        function toggle(sectionId, checkbox) {
+            var el = document.getElementById(sectionId);
+            if (el) el.style.display = checkbox.checked ? '' : 'none';
+        }
+    </script>
 </body>
 
 </html>
