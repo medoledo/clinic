@@ -8,10 +8,13 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 
 from accounts.decorators import doctor_required
-from .models import Patient, Visit, VisitFile
+from .models import Patient, Visit, VisitFile, MedicalDictionary, TranscriptionCorrection
+from .utils import apply_personal_corrections, find_suggestions
 
 
 # ─────────────────────────── Constants ────────────────────────────────────────
@@ -556,6 +559,7 @@ def delete_visit(request, pk):
         return JsonResponse({'success': True, 'message': 'Visit deleted successfully.'})
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
+
 # ─────────────────────────── Delete Visit File ────────────────────────────────
 
 @doctor_required
@@ -633,11 +637,80 @@ def sync_offline_visit(request):
     })
 
 
+# ─────────────────────────── Check Suggestions ────────────────────────────────
+
+@doctor_required
+@require_POST
+def check_suggestions(request):
+    """
+    Receives transcribed text, applies personal corrections,
+    and returns suggestions for potentially wrong words.
+    """
+    try:
+        data = json.loads(request.body)
+        text = data.get('text', '').strip()
+        if not text:
+            return JsonResponse({'error': 'No text provided'}, status=400)
+
+        corrected_text, suggestions = find_suggestions(text, request.user)
+
+        return JsonResponse({
+            'success': True,
+            'corrected_text': corrected_text,
+            'suggestions': suggestions
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+# ─────────────────────────── Save Correction ──────────────────────────────────
+
+@doctor_required
+@require_POST
+def save_correction(request):
+    """
+    Saves a confirmed correction to the doctor's personal learning table.
+    Next time the same wrong word appears, it gets auto-corrected.
+    """
+    try:
+        data = json.loads(request.body)
+        wrong_word = data.get('wrong_word', '').strip()
+        correct_word = data.get('correct_word', '').strip()
+
+        if not wrong_word or not correct_word:
+            return JsonResponse({'error': 'Both wrong_word and correct_word are required'}, status=400)
+
+        correction, created = TranscriptionCorrection.objects.get_or_create(
+            doctor=request.user,
+            wrong_word=wrong_word,
+            defaults={'correct_word': correct_word}
+        )
+
+        if not created:
+            correction.correct_word = correct_word
+            correction.usage_count += 1
+            correction.save()
+
+        # Also add the correct word to dictionary if not already there
+        MedicalDictionary.objects.get_or_create(
+            word=correct_word,
+            defaults={'category': 'other'}
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Correction saved: {wrong_word} → {correct_word}',
+            'usage_count': correction.usage_count
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 # ───────────────────────── Groq Transcription ─────────────────────────
 
 import tempfile
 from django.conf import settings as django_settings
-from django.views.decorators.http import require_POST as _require_POST
+from django.views.decorators.http import require_POST
 from groq import Groq as _Groq
 
 MEDICAL_PROMPT = (
@@ -652,7 +725,7 @@ MEDICAL_PROMPT = (
 
 
 @doctor_required
-@_require_POST
+@require_POST
 def transcribe_audio(request):
     """
     Receives a WebM audio blob from the frontend voice recorder,
@@ -729,7 +802,7 @@ Return format:
 """
 
 @doctor_required
-@_require_POST
+@require_POST
 def transcribe_and_parse(request):
     audio_file = request.FILES.get('audio')
     if not audio_file:
@@ -756,6 +829,9 @@ def transcribe_and_parse(request):
         raw_transcript = transcription.strip()
         if not raw_transcript:
             return JsonResponse({'error': 'Empty transcript'}, status=400)
+
+        # Apply personal learned corrections before parsing
+        raw_transcript = apply_personal_corrections(raw_transcript, request.user)
 
         # Step 2: Parse with Claude
         claude_client = anthropic.Anthropic(api_key=django_settings.ANTHROPIC_API_KEY)

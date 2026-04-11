@@ -96,6 +96,7 @@ class Visit(models.Model):
 
 
 class VisitFile(models.Model):
+
     FILE_TYPE_CHOICES = [
         ('lab_result', 'Lab Result'),
         ('xray', 'X-Ray'),
@@ -149,3 +150,44 @@ class VisitFile(models.Model):
                 return f"{size / (1024 * 1024):.1f} MB"
         except Exception:
             return "Unknown size"
+
+
+class MedicalDictionary(models.Model):
+    """Master dictionary of known correct medical words/drug names."""
+    word = models.CharField(max_length=200, unique=True, db_index=True)
+    category = models.CharField(max_length=50, default='drug', choices=[
+        ('drug', 'Drug Name'),
+        ('diagnosis', 'Diagnosis'),
+        ('symptom', 'Symptom'),
+        ('procedure', 'Procedure'),
+        ('other', 'Other'),
+    ])
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Medical Dictionary'
+        verbose_name_plural = 'Medical Dictionary'
+
+    def __str__(self):
+        return self.word
+
+
+class TranscriptionCorrection(models.Model):
+    """Personal learning table — maps wrong heard words to correct ones."""
+    doctor = models.ForeignKey(
+        'auth.User',
+        on_delete=models.CASCADE,
+        related_name='transcription_corrections'
+    )
+    wrong_word = models.CharField(max_length=200, db_index=True)
+    correct_word = models.CharField(max_length=200)
+    usage_count = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('doctor', 'wrong_word')
+        ordering = ['-usage_count']
+
+    def __str__(self):
+        return f'{self.wrong_word} → {self.correct_word} ({self.usage_count}x)'

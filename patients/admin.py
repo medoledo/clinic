@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Patient, Visit, VisitFile
+from .models import Patient, Visit, VisitFile, MedicalDictionary, TranscriptionCorrection
 
 
 class VisitFileInline(admin.TabularInline):
@@ -92,3 +92,18 @@ class VisitFileAdmin(admin.ModelAdmin):
     show_full_result_count = False
     list_per_page = 25
     raw_id_fields = ('visit', 'doctor')
+
+
+@admin.register(MedicalDictionary)
+class MedicalDictionaryAdmin(admin.ModelAdmin):
+    list_display = ['word', 'category', 'created_at']
+    list_filter = ['category']
+    search_fields = ['word']
+
+
+@admin.register(TranscriptionCorrection)
+class TranscriptionCorrectionAdmin(admin.ModelAdmin):
+    list_display = ['wrong_word', 'correct_word', 'doctor', 'usage_count', 'updated_at']
+    list_filter = ['doctor']
+    search_fields = ['wrong_word', 'correct_word']
+    ordering = ['-usage_count']
