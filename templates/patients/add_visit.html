@@ -156,16 +156,16 @@
     <div class="card p-5 border-l-4 border-l-blue-500 shadow-sm col-span-1 md:col-span-2 bg-blue-50/30">
         <div class="visit-recorder">
             <button type="button" id="visit-record-btn" class="btn-record">
-                🎙️ تسجيل الزيارة
+                🎙️ Record Visit
             </button>
-            <span id="voice-status" class="voice-status">جاهز للتسجيل</span>
+            <span id="voice-status" class="voice-status">Ready to record</span>
         </div>
 
         <div class="recording-guide">
             <strong>نصيحة للتسجيل الذكي:</strong><br/>
             قل: <strong>"شكوى"</strong> ثم ما يشتكي منه المريض، <strong>"تشخيص"</strong> ثم التشخيص، 
             <strong>"علاج"</strong> ثم وصفة العلاج، <strong>"أعراض"</strong> ثم الأعراض،
-            <strong>"ملاحظات"</strong> ثم أية ملاحظات خاصة.
+            <strong>"ملاحظات"</strong> ثم أية ملاحظات خاصة، وللعلامات الحيوية: <strong>"حرارة"</strong>، <strong>"ضغط"</strong>، <strong>"نبض"</strong>، و<strong>"وزن"</strong>.
         </div>
     </div>
 
@@ -174,7 +174,7 @@
             <div class="card p-5 col-span-1">
                 <label class="form-label">Visit Date &amp; Time</label>
                 <input name="visit_date" type="text" id="visit_date_picker" class="form-input md:max-w-sm"
-                    value="{% if is_edit %}{{ visit.visit_date }}T{{ visit.visit_date|time:'H:i' }}{% else %}{% if is_edit %}{{ visit.visit_date }}T{{ visit.visit_date|time:'H:i' }}{% else %}{{ now }}T{{ now|date:'H:i' }}{% endif %}{% endif %}" />
+                    value="{% if is_edit %}{{ visit.visit_date|date:'Y-m-d\TH:i' }}{% else %}{{ now|date:'Y-m-d\TH:i' }}{% endif %}" />
             </div>
 
             <div class="card p-5 col-span-1">

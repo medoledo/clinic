@@ -49,8 +49,8 @@ async function startRecording() {
         mediaRecorder.start();
         isRecording = true;
         recordBtn.classList.add('recording');
-        recordBtn.innerHTML = '⏹️ إيقاف التسجيل';
-        setStatus('🎙️ جاري التسجيل... تكلم الآن', 'recording');
+        recordBtn.innerHTML = '⏹️ Stop Recording';
+        setStatus('🎙️ Recording... Speak now', 'recording');
 
     } catch (err) {
         setStatus('❌ لا يمكن الوصول للميكروفون', 'error');
@@ -63,7 +63,7 @@ function stopRecording() {
         mediaRecorder.stop();
         isRecording = false;
         recordBtn.classList.remove('recording');
-        recordBtn.innerHTML = '🎙️ تسجيل الزيارة';
+        recordBtn.innerHTML = '🎙️ Record Visit';
         setStatus('⏳ جاري التحليل عبر الذكاء الاصطناعي...', 'loading');
     }
 }
@@ -76,7 +76,7 @@ async function sendRecording() {
 
     try {
         const response = await fetch(TRANSCRIBE_URL, {
-            method = 'POST',
+            method: 'POST',
             headers: { 'X-CSRFToken': CSRF_TOKEN },
             body: formData
         });
@@ -259,8 +259,8 @@ document.addEventListener('DOMContentLoaded', () => {
              }
              isRecording = false;
              recordBtn.classList.remove('recording');
-             recordBtn.innerHTML = '🎙️ تسجيل الزيارة';
-             setStatus('تم الإلغاء', 'error');
+             recordBtn.innerHTML = '🎙️ Record Visit';
+             setStatus('Cancelled', 'error');
              setTimeout(resetStatusUI, 3000);
         }
     });

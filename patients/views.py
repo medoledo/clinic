@@ -782,6 +782,10 @@ Parse the transcript and extract content for these fields:
 - diagnosis: triggered by (تشخيص، التشخيص، تشخيصي)
 - treatment: triggered by (علاج، العلاج، وصفة، الوصفة، دواء)
 - doctor_notes: triggered by (ملاحظات، ملاحظات خاصة، نوت، نوتس)
+- temperature: triggered by (حرارة، درجة الحرارة). Extract only the number.
+- blood_pressure: triggered by (ضغط، الضغط). Extract as text (e.g. 120/80).
+- pulse: triggered by (نبض، النبض، دقات القلب). Extract only the number.
+- weight: triggered by (وزن، الوزن). Extract only the number.
 
 Rules:
 - Extract ONLY what the doctor said for each field, nothing else
@@ -797,7 +801,11 @@ Return format:
   "symptoms": "...",
   "diagnosis": "...",
   "treatment": "...",
-  "doctor_notes": "..."
+  "doctor_notes": "...",
+  "temperature": "...",
+  "blood_pressure": "...",
+  "pulse": "...",
+  "weight": "..."
 }
 """
 
