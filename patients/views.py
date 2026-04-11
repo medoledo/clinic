@@ -1,3 +1,5 @@
+import os
+import anthropic
 import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -629,3 +631,162 @@ def sync_offline_visit(request):
         'visit_id': visit.pk,
         'offline_id': data.get('offline_id'),
     })
+
+
+# ───────────────────────── Groq Transcription ─────────────────────────
+
+import tempfile
+from django.conf import settings as django_settings
+from django.views.decorators.http import require_POST as _require_POST
+from groq import Groq as _Groq
+
+MEDICAL_PROMPT = (
+    "amlodipine, metformin, atorvastatin, paracetamol, amoxicillin, "
+    "diclofenac, meloxicam, dexamethasone, omeprazole, losartan, "
+    "metoclopramide, prednisolone, ciprofloxacin, azithromycin, ibuprofen, "
+    "blood pressure, diabetes, hypertension, gastritis, infection, "
+    "antibiotics, antihistamine, corticosteroid, antacid, analgesic, "
+    "\u0623\u0645\u0644\u0648\u062f\u064a\u0628\u064a\u0646, \u0645\u064a\u062a\u0641\u0648\u0631\u0645\u064a\u0646, \u0628\u0646\u0627\u062f\u0648\u0644, \u0623\u0645\u0648\u0643\u0633\u064a\u0633\u064a\u0644\u064a\u0646, "
+    "\u062f\u064a\u0643\u0644\u0648\u0641\u064a\u0646\u0627\u0643, \u0645\u064a\u0644\u0648\u0643\u0633\u064a\u0643\u0627\u0645, \u062f\u064a\u0643\u0633\u0627\u0645\u064a\u062b\u0627\u0632\u0648\u0646, \u0623\u0648\u0645\u0628\u0631\u0627\u0632\u0648\u0644, \u0644\u0648\u0633\u0627\u0631\u062a\u0627\u0646"
+)
+
+
+@doctor_required
+@_require_POST
+def transcribe_audio(request):
+    """
+    Receives a WebM audio blob from the frontend voice recorder,
+    sends it to Groq Whisper Large-v3, and returns the transcript as JSON.
+    Authentication: @doctor_required (only logged-in doctors can call this).
+    CSRF: enforced by Django middleware — JS sends X-CSRFToken header.
+    """
+    audio_file = request.FILES.get("audio")
+    if not audio_file:
+        return JsonResponse({"error": "No audio file received."}, status=400)
+
+    # Limit audio file size to 25 MB (Groq hard limit)
+    if audio_file.size > 25 * 1024 * 1024:
+        return JsonResponse({"error": "Audio file exceeds 25 MB limit."}, status=400)
+
+    suffix = ".webm"
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            for chunk in audio_file.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+
+        api_key = django_settings.GROQ_API_KEY
+        if not api_key:
+            return JsonResponse({"error": "GROQ_API_KEY is not configured."}, status=500)
+
+        client = _Groq(api_key=api_key)
+        with open(tmp_path, "rb") as f:
+            transcription = client.audio.transcriptions.create(
+                file=(os.path.basename(tmp_path), f),
+                model="whisper-large-v3",
+                prompt=MEDICAL_PROMPT,
+                response_format="text",
+            )
+        return JsonResponse({"transcript": transcription})
+
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=500)
+
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+
+
+PARSE_SYSTEM_PROMPT = """
+You are a medical transcript parser for an Egyptian doctor's clinic system.
+You will receive an Arabic/mixed Arabic-English transcript of a doctor dictating a patient visit.
+The doctor uses specific Arabic trigger words to indicate which field he is filling.
+
+Parse the transcript and extract content for these fields:
+- chief_complaint: triggered by (شكوى، الشكوى، شكوة)
+- symptoms: triggered by (أعراض، الأعراض، علامات)
+- diagnosis: triggered by (تشخيص، التشخيص، تشخيصي)
+- treatment: triggered by (علاج، العلاج، وصفة، الوصفة، دواء)
+- doctor_notes: triggered by (ملاحظات، ملاحظات خاصة، نوت، نوتس)
+
+Rules:
+- Extract ONLY what the doctor said for each field, nothing else
+- If a field was not mentioned, return empty string "" for it
+- Keep medical drug names exactly as spoken
+- Keep the text in the same language the doctor used (Arabic, English, or mixed)
+- Do NOT translate, summarize, or modify the content
+- Return ONLY a valid JSON object with no extra text, no markdown, no explanation
+
+Return format:
+{
+  "chief_complaint": "...",
+  "symptoms": "...",
+  "diagnosis": "...",
+  "treatment": "...",
+  "doctor_notes": "..."
+}
+"""
+
+@doctor_required
+@_require_POST
+def transcribe_and_parse(request):
+    audio_file = request.FILES.get('audio')
+    if not audio_file:
+        return JsonResponse({'error': 'No audio file received'}, status=400)
+
+    suffix = '.webm'
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            for chunk in audio_file.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+
+        # Step 1: Transcribe with Groq
+        groq_client = _Groq(api_key=django_settings.GROQ_API_KEY)
+        with open(tmp_path, 'rb') as f:
+            transcription = groq_client.audio.transcriptions.create(
+                file=(os.path.basename(tmp_path), f),
+                model='whisper-large-v3',
+                prompt=MEDICAL_PROMPT,
+                response_format='text'
+            )
+
+        raw_transcript = transcription.strip()
+        if not raw_transcript:
+            return JsonResponse({'error': 'Empty transcript'}, status=400)
+
+        # Step 2: Parse with Claude
+        claude_client = anthropic.Anthropic(api_key=django_settings.ANTHROPIC_API_KEY)
+        message = claude_client.messages.create(
+            model='claude-3-5-sonnet-20241022',
+            max_tokens=1024,
+            messages=[
+                {
+                    'role': 'user',
+                    'content': f'Parse this medical transcript into fields:\n\n{raw_transcript}'
+                }
+            ],
+            system=PARSE_SYSTEM_PROMPT
+        )
+
+        response_text = message.content[0].text.strip()
+
+        # Clean response and parse JSON
+        response_text = response_text.replace('```json', '').replace('```', '').strip()
+        parsed_fields = json.loads(response_text)
+
+        return JsonResponse({
+            'success': True,
+            'transcript': raw_transcript,
+            'fields': parsed_fields
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Failed to parse fields from transcript'}, status=500)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)

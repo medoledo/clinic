@@ -1,2 +1,6 @@
 Django>=5.2
 Pillow>=10.0
+groq>=1.1.2
+python-decouple>=3.8
+
+anthropic>=0.25.0

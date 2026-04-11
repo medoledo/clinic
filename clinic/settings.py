@@ -7,8 +7,14 @@ and set SECURE_SSL_REDIRECT=True, SESSION_COOKIE_SECURE=True, CSRF_COOKIE_SECURE
 """
 
 from pathlib import Path
+from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# ─── GROQ ───────────────────────────────────────────────────────────────────────
+GROQ_API_KEY = config('GROQ_API_KEY', default='')
+ANTHROPIC_API_KEY = config('ANTHROPIC_API_KEY', default='')
+
 
 # ─── SECURITY ──────────────────────────────────────────────────────────────────
 # IMPORTANT: Override this in production via environment variable!

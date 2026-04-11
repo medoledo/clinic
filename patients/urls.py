@@ -18,4 +18,6 @@ urlpatterns = [
     path('search-patients/', views.search_patients, name='search_patients'),
     path('pending-visits/', views.pending_visits, name='pending_visits'),
     path('sync-offline-visit/', views.sync_offline_visit, name='sync_offline_visit'),
+    path('transcribe/', views.transcribe_audio, name='transcribe_audio'),
+    path('transcribe-visit/', views.transcribe_and_parse, name='transcribe_visit'),
 ]

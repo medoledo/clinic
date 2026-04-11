@@ -41,35 +41,7 @@
 </div>
 
 
-<!-- Sticky UI Controls (Language & Status) -->
-<div class="sticky top-[72px] z-30 mb-5">
-    <div
-        class="card p-3 shadow-md border-primary/20 flex flex-wrap items-center justify-between gap-4 bg-white/95 backdrop-blur-md">
-        <div class="flex items-center gap-3">
-            <div
-                class="flex items-center gap-1 border border-border rounded-lg overflow-hidden text-sm font-semibold shadow-sm">
-                <button type="button" id="lang-en" onclick="setLang('en-US')"
-                    class="px-5 py-2.5 bg-primary text-white transition-all hover:bg-primary/90"
-                    title="English">EN</button>
-                <button type="button" id="lang-ar" onclick="setLang('ar-EG')"
-                    class="px-5 py-2.5 bg-white text-muted hover:bg-gray-50 transition-all" title="Arabic">AR</button>
-            </div>
-            <span id="recording-status"
-                class="hidden text-sm text-danger font-bold flex items-center gap-2 px-3 py-1.5 bg-red-50 rounded-full animate-pulse border border-red-100">
-                <span class="w-2.5 h-2.5 bg-danger rounded-full"></span>
-                Recording Speech...
-            </span>
-        </div>
 
-        <div id="wave-animation" class="hidden items-center gap-1 text-primary h-6 px-4">
-            <div class="wave-bar h-3 bg-primary" style="animation-delay:0s"></div>
-            <div class="wave-bar h-5 bg-primary" style="animation-delay:.15s"></div>
-            <div class="wave-bar h-2 bg-primary" style="animation-delay:.3s"></div>
-            <div class="wave-bar h-6 bg-primary" style="animation-delay:.1s"></div>
-            <div class="wave-bar h-4 bg-primary" style="animation-delay:.25s"></div>
-        </div>
-    </div>
-</div>
 
 <!-- Visit Form -->
 <form method="POST" enctype="multipart/form-data" id="visit-form" class="flex flex-col">
@@ -77,6 +49,77 @@
     <input type="hidden" name="patient_id" value="{{ patient.pk }}" />
 
     <div class="space-y-4">
+
+    <!-- Single Visit Recording UI -->
+    <style>
+    .visit-recorder {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        background: white;
+        border: 2px dashed #94a3b8;
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+
+    .btn-record {
+        padding: 12px 28px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+        min-width: 200px;
+        text-align: center;
+    }
+
+    .btn-record.recording {
+        background: #dc2626;
+        animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.8; }
+    }
+
+    .voice-status { font-size: 14px; font-weight: 600; }
+    .voice-status--recording { color: #dc2626; }
+    .voice-status--loading { color: #d97706; }
+    .voice-status--success { color: #16a34a; }
+    .voice-status--error { color: #dc2626; }
+
+    .recording-guide {
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        background: #f1f5f9;
+        border-radius: 6px;
+        color: #64748b;
+        font-size: 14px;
+        border-left: 4px solid #3b82f6;
+    }
+    </style>
+
+    <div class="card p-5 border-l-4 border-l-blue-500 shadow-sm col-span-1 md:col-span-2 bg-blue-50/30">
+        <div class="visit-recorder">
+            <button type="button" id="visit-record-btn" class="btn-record">
+                🎙️ تسجيل الزيارة
+            </button>
+            <span id="voice-status" class="voice-status">جاهز للتسجيل</span>
+        </div>
+
+        <div class="recording-guide">
+            <strong>نصيحة للتسجيل الذكي:</strong><br/>
+            قل: <strong>"شكوى"</strong> ثم ما يشتكي منه المريض، <strong>"تشخيص"</strong> ثم التشخيص، 
+            <strong>"علاج"</strong> ثم وصفة العلاج، <strong>"أعراض"</strong> ثم الأعراض،
+            <strong>"ملاحظات"</strong> ثم أية ملاحظات خاصة.
+        </div>
+    </div>
+
         <!-- Visit Date & Grid Start -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="card p-5 col-span-1">
@@ -118,7 +161,8 @@
                 </div>
 
 
-                <div class="border-t border-slate-200 my-4"></div>
+                <div class="border-t border-slate-200 my-4"></div>
+
                 <!-- Unified Clinical Notes -->
                 <div class="card p-0 overflow-hidden border border-border shadow-sm mb-4 mt-5">
                     <div class="bg-slate-50/80 border-b border-border px-5 py-3 flex items-center justify-between">
@@ -139,15 +183,7 @@
                                 <label
                                     class="text-[11px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer select-none"
                                     for="chief_complaint">Chief Complaint</label>
-                                <button type="button"
-                                    class="mic-btn field-mic !w-7 !h-7 !rounded-md border border-slate-200 shadow-sm text-slate-400 bg-white hover:border-primary hover:text-primary transition-all opacity-50 group-hover:opacity-100"
-                                    data-target="chief_complaint">
-                                    <svg class="w-3.5 h-3.5 inline" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2.07z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </button>
+                                
                             </div>
                             <textarea name="chief_complaint" id="chief_complaint"
                                 class="form-textarea border-0 bg-transparent p-0 focus:ring-0 resize-none overflow-hidden min-h-[40px] text-textmain placeholder-slate-300 text-sm leading-relaxed"
@@ -162,15 +198,7 @@
                                 <label
                                     class="text-[11px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer select-none"
                                     for="symptoms">Symptoms</label>
-                                <button type="button"
-                                    class="mic-btn field-mic !w-7 !h-7 !rounded-md border border-slate-200 shadow-sm text-slate-400 bg-white hover:border-primary hover:text-primary transition-all opacity-50 group-hover:opacity-100"
-                                    data-target="symptoms">
-                                    <svg class="w-3.5 h-3.5 inline" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2.07z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </button>
+                                
                             </div>
                             <textarea name="symptoms" id="symptoms"
                                 class="form-textarea border-0 bg-transparent p-0 focus:ring-0 resize-none overflow-hidden min-h-[40px] text-textmain placeholder-slate-300 text-sm leading-relaxed"
@@ -188,15 +216,7 @@
                                 <label
                                     class="text-[11px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer select-none"
                                     for="diagnosis">Diagnosis</label>
-                                <button type="button"
-                                    class="mic-btn field-mic !w-7 !h-7 !rounded-md border border-slate-200 shadow-sm text-slate-400 bg-white hover:border-primary hover:text-primary transition-all opacity-50 group-hover:opacity-100"
-                                    data-target="diagnosis">
-                                    <svg class="w-3.5 h-3.5 inline" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2.07z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </button>
+                                
                             </div>
                             <textarea name="diagnosis" id="diagnosis"
                                 class="form-textarea border-0 bg-transparent p-0 focus:ring-0 resize-none overflow-hidden min-h-[40px] text-textmain placeholder-slate-300 text-sm leading-relaxed"
@@ -211,15 +231,7 @@
                                 <label
                                     class="text-[11px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer select-none"
                                     for="treatment">Treatment / Prescription</label>
-                                <button type="button"
-                                    class="mic-btn field-mic !w-7 !h-7 !rounded-md border border-slate-200 shadow-sm text-slate-400 bg-white hover:border-primary hover:text-primary transition-all opacity-50 group-hover:opacity-100"
-                                    data-target="treatment">
-                                    <svg class="w-3.5 h-3.5 inline" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2.07z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </button>
+                                
                             </div>
                             <textarea name="treatment" id="treatment"
                                 class="form-textarea border-0 bg-transparent p-0 focus:ring-0 resize-none overflow-hidden min-h-[40px] text-textmain placeholder-slate-300 text-sm leading-relaxed"
@@ -243,15 +255,7 @@
                                     </svg>
                                     Private Notes
                                 </label>
-                                <button type="button"
-                                    class="mic-btn field-mic !w-7 !h-7 !rounded-md border border-amber-200 shadow-sm text-amber-500 bg-white hover:border-amber-500 hover:text-amber-600 transition-all opacity-50 group-hover:opacity-100"
-                                    data-target="doctor_notes">
-                                    <svg class="w-3.5 h-3.5 inline" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2.07z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </button>
+                                
                             </div>
                             <textarea name="doctor_notes" id="doctor_notes"
                                 class="form-textarea border-0 bg-transparent p-0 focus:ring-0 resize-none overflow-hidden min-h-[40px] text-textmain placeholder-amber-200/70 text-sm leading-relaxed"
