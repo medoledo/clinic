@@ -1,38 +1,65 @@
-```
-# Compiled Python files
-*.pyc
+# Python
 __pycache__/
-
-# Dependencies
-.venv/
-venv/
-node_modules/
-
-# Logs and temporary files
-*.log
-*.tmp
-*.swp
-
-# Environment files
-.env
-.env.local
-*.env.*
-
-# Editors
-.vscode/
-.idea/
-
-# Build artifacts
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
 dist/
 build/
-target/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
 
-# Coverage reports
-coverage/
-htmlcov/
+# Virtual Environment (never commit venvs)
+venv/
+env/
+ENV/
+.venv/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+static_root/
+
+# Secrets & env files
+.env
+.env.*
+*.env
+secrets.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Coverage
 .coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
 
-# Python cache
-.mypy_cache/
-.pytest_cache/
-```
+# Migrations (keep migrations in version control for Django)
+# Do NOT add migrations/ here
+
+# Node / Tailwind (if added later)
+node_modules/
+npm-debug.log
+
+# OS
+.DS_Store
+*.bak
+*.tmp
