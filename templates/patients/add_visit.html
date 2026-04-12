@@ -37,6 +37,13 @@
         <h2 class="text-xl font-bold text-textmain">{{ patient.name }}</h2>
         <div class="text-sm text-muted">{{ patient.gender|capfirst }}{% if patient.age %} &middot; {{ patient.age }}
             yrs{% endif %}</div>
+        <div class="recording-guide mt-4 border-t pt-2">
+            <strong>Voice Recording Tip:</strong><br/>
+            Say: <strong>"complaint"</strong> for chief complaint, <strong>"diagnosis"</strong> for diagnosis, 
+            <strong>"treatment"</strong> for prescription, <strong>"symptoms"</strong> for symptoms,
+            <strong>"notes"</strong> for private notes, and for vitals: <strong>"temperature"</strong>, <strong>"pressure"</strong>, <strong>"pulse"</strong>, <strong>"weight"</strong>, and <strong>"consultation"</strong> for next checkup.
+        </div>
+
     </div>
 </div>
 
@@ -157,19 +164,33 @@
     <div class="card p-5 border-l-4 border-l-blue-500 shadow-sm col-span-1 md:col-span-2 bg-blue-50/30">
         <div class="visit-recorder"
              data-status-listening="🎤 جاري الاستماع... تكلم الآن"
+             data-status-listening-en="🎤 Listening... Speak now"
              data-status-processing="⏳ جاري التحليل..."
+             data-status-processing-en="⏳ Processing..."
              data-status-success="✅ تم تعبئة الحقول بنجاح"
+             data-status-success-en="✅ Fields filled successfully"
              data-status-error-mic="❌ لا يمكن الوصول للميكروفون"
+             data-status-error-mic-en="❌ Microphone access denied"
              data-status-error-connection="❌ خطأ في الاتصال بالخادم"
+             data-status-error-connection-en="❌ Server connection error"
              data-status-offline="🎤 وضع بدون إنترنت — جاري الاستماع..."
+             data-status-offline-en="🎤 Offline mode — Listening..."
              data-status-offline-done="⚠️ تم التعبئة بوضع بدون إنترنت — الدقة أقل من المعتاد"
+             data-status-offline-done-en="⚠️ Offline processing complete — lower accuracy"
              data-status-empty="❌ لم يتم التعرف على أي كلام"
+             data-status-empty-en="❌ No speech detected"
              data-btn-record="🎤 تسجيل الزيارة"
+             data-btn-record-en="🎤 Record Visit"
              data-btn-stop="⏹️ إيقاف التسجيل"
+             data-btn-stop-en="⏹️ Stop Recording"
              data-lbl-suggest="هل تقصد:"
+             data-lbl-suggest-en="Did you mean:"
              data-lbl-instead="بدلاً من"
+             data-lbl-instead-en="instead of"
              data-lbl-yes="✔ نعم"
-             data-lbl-no="✘ لا">
+             data-lbl-yes-en="✔ Yes"
+             data-lbl-no="✘ لا"
+             data-lbl-no-en="✘ No">
             <button type="button" id="visit-record-btn" class="btn-record">
                 🎙️ Record Visit
             </button>
@@ -188,7 +209,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="card p-5 col-span-1">
                 <label class="form-label">Visit Date &amp; Time</label>
-                <input name="visit_date" type="text" id="visit_date_picker" class="form-input md:max-w-sm"
+                <input name="visit_date" type="datetime-local" id="visit_date_picker" class="form-input md:max-w-sm"
                     value="{% if is_edit %}{{ visit.visit_date|date:'Y-m-d\TH:i' }}{% else %}{{ now|date:'Y-m-d\TH:i' }}{% endif %}" />
             </div>
 

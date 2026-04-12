@@ -269,6 +269,15 @@ def _fill_patient_from_post(patient, post):
     patient.gender = gender if gender in ('male', 'female') else 'male'
     patient.notes = post.get('notes', '').strip()
     return None
+def _safe_date(value):
+    # Parse a string to date safely; returns None on failure.
+    if not value or not value.strip():
+        return None
+    try:
+        return parse_date(value.strip())
+    except (ValueError, TypeError):
+        return None
+
 
 
 # ─────────────────────────── Add Visit ────────────────────────────────────────
@@ -325,8 +334,7 @@ def add_visit(request, pk):
         visit.pulse = _safe_int(request.POST.get('pulse'))
         visit.weight = _safe_decimal(request.POST.get('weight'))
 
-        ncd = request.POST.get('next_checkup_date', '').strip()
-        visit.next_checkup_date = ncd if ncd else None
+        visit.next_checkup_date = _safe_date(request.POST.get('next_checkup_date'))
 
         visit.save()
 
@@ -471,8 +479,7 @@ def edit_visit(request, pk):
         visit.pulse = _safe_int(request.POST.get('pulse'))
         visit.weight = _safe_decimal(request.POST.get('weight'))
 
-        ncd = request.POST.get('next_checkup_date', '').strip()
-        visit.next_checkup_date = ncd if ncd else None
+        visit.next_checkup_date = _safe_date(request.POST.get('next_checkup_date'))
 
         visit.save()
 
@@ -740,7 +747,7 @@ Parse the transcript and extract content for these fields:
 - blood_pressure: triggered by (ضغط، الضغط). Extract as text (e.g. 120/80).
 - pulse: triggered by (نبض، النبض، دقات القلب). Extract only the number.
 - weight: triggered by (وزن، الوزن). Extract only the number.
-- next_checkup_date: triggered by (استشارة، موعد القادم، استشارة بعد، استشارة في). Format: YYYY-MM-DD.
+- next_checkup_date: triggered by (استشارة، موعد القادم، استشارة بعد، استشارة في). Format: YYYY-MM-DD. (IMPORTANT: Must be in YYYY-MM-DD format, e.g., 2026-12-31. If you hear "after 2 weeks", calculate the date from today which is 2026-04-12)
 
 Rules:
 - Extract ONLY what the doctor said for each field, nothing else

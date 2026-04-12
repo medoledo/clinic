@@ -14,20 +14,20 @@ const SAVE_CORRECTION_URL = '/save-correction/';
 // --- i18n strings from template data attributes ---
 const recorderContainer = document.querySelector('.visit-recorder');
 const STRINGS = recorderContainer ? {
-    listening:       recorderContainer.dataset.statusListening,
-    processing:      recorderContainer.dataset.statusProcessing,
-    success:         recorderContainer.dataset.statusSuccess,
-    errorMic:        recorderContainer.dataset.statusErrorMic,
-    errorConnection: recorderContainer.dataset.statusErrorConnection,
-    offline:         recorderContainer.dataset.statusOffline,
-    offlineDone:     recorderContainer.dataset.statusOfflineDone,
-    empty:           recorderContainer.dataset.statusEmpty,
-    btnRecord:       recorderContainer.dataset.btnRecord,
-    btnStop:         recorderContainer.dataset.btnStop,
-    suggest:         recorderContainer.dataset.lblSuggest,
-    instead:         recorderContainer.dataset.lblInstead,
-    yes:             recorderContainer.dataset.lblYes,
-    no:              recorderContainer.dataset.lblNo,
+    listening:       recorderContainer.dataset.statusListeningEn || recorderContainer.dataset.statusListening,
+    processing:      recorderContainer.dataset.statusProcessingEn || recorderContainer.dataset.statusProcessing,
+    success:         recorderContainer.dataset.statusSuccessEn || recorderContainer.dataset.statusSuccess,
+    errorMic:        recorderContainer.dataset.statusErrorMicEn || recorderContainer.dataset.statusErrorMic,
+    errorConnection: recorderContainer.dataset.statusErrorConnectionEn || recorderContainer.dataset.statusErrorConnection,
+    offline:         recorderContainer.dataset.statusOfflineEn || recorderContainer.dataset.statusOffline,
+    offlineDone:     recorderContainer.dataset.statusOfflineDoneEn || recorderContainer.dataset.statusOfflineDone,
+    empty:           recorderContainer.dataset.statusEmptyEn || recorderContainer.dataset.statusEmpty,
+    btnRecord:       recorderContainer.dataset.btnRecordEn || recorderContainer.dataset.btnRecord,
+    btnStop:         recorderContainer.dataset.btnStopEn || recorderContainer.dataset.btnStop,
+    suggest:         recorderContainer.dataset.lblSuggestEn || recorderContainer.dataset.lblSuggest,
+    instead:         recorderContainer.dataset.lblInsteadEn || recorderContainer.dataset.lblInstead,
+    yes:             recorderContainer.dataset.lblYesEn || recorderContainer.dataset.lblYes,
+    no:              recorderContainer.dataset.lblNoEn || recorderContainer.dataset.lblNo,
 } : {};
 
 function getCSRFToken() {
@@ -55,16 +55,27 @@ function setStatus(message, type = 'info') {
     statusEl.className = `voice-status voice-status--${type}`;
 }
 
+
 function fillFields(fields) {
     Object.entries(fields).forEach(([fieldId, value]) => {
         if (!value || !value.trim()) return;
         const field = document.getElementById(fieldId);
         if (!field) return;
-        const space = field.value && !field.value.endsWith(' ') ? ' ' : '';
-        field.value += space + value.trim();
+
+        // Special handling for date fields
+        if (field.type === 'date' || field.type === 'datetime-local') {
+            // Check if value is already in YYYY-MM-DD or similar
+            // If it's something like "24-2027", we might want to fix it, but for now we just set it.
+            // If the browser rejects it, it won't show, but it might still submit.
+            field.value = value.trim();
+        } else {
+            const space = field.value && !field.value.endsWith(' ') ? ' ' : '';
+            field.value += space + value.trim();
+        }
         field.dispatchEvent(new Event('input'));
     });
 }
+
 
 function resetStatusUI() {
     setStatus('', 'info');
