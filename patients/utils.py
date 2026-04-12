@@ -109,3 +109,48 @@ def find_suggestions(text, doctor, threshold=70):
                 })
 
     return corrected_text, suggestions
+
+import re
+import json
+
+def regex_parse_transcript(text):
+    """
+    A robust regex-based fallback for when the AI is down.
+    Identifies fields based on the same trigger words used in the prompt.
+    """
+    fields = {
+        "chief_complaint": "",
+        "symptoms": "",
+        "diagnosis": "",
+        "treatment": "",
+        "doctor_notes": "",
+        "temperature": "",
+        "blood_pressure": "",
+        "pulse": "",
+        "weight": "",
+        "next_checkup_date": ""
+    }
+    
+    # Trigger mapping (reduced set for regex efficiency)
+    patterns = {
+        "chief_complaint": r"(?:شكوى|الشكوى|شكوة)(.*?)(?=أعراض|الأعراض|علامات|تشخيص|علاج|وصفة|ملاحظات|حرارة|ضغط|نبض|وزن|استشارة|$)",
+        "symptoms": r"(?:أعراض|الأعراض|علامات)(.*?)(?=شكوى|تشخيص|علاج|وصفة|ملاحظات|حرارة|ضغط|نبض|وزن|استشارة|$)",
+        "diagnosis": r"(?:تشخيص|التشخيص|تشخيصي)(.*?)(?=شكوى|أعراض|علاج|وصفة|ملاحظات|حرارة|ضغط|نبض|وزن|استشارة|$)",
+        "treatment": r"(?:علاج|العلاج|وصفة|الوصفة|دواء)(.*?)(?=شكوى|أعراض|تشخيص|ملاحظات|حرارة|ضغط|نبض|وزن|استشارة|$)",
+        "doctor_notes": r"(?:ملاحظات|ملاحظات خاصة|نوت|نوتس)(.*?)(?=شكوى|أعراض|تشخيص|علاج|حرارة|ضغط|نبض|وزن|استشارة|$)",
+        "temperature": r"(?:حرارة|درجة الحرارة)\s*(\d+(?:\.\d+)?)",
+        "blood_pressure": r"(?:ضغط|الضغط)\s*(\d+\s*/\s*\d+|\d+\s*على\s*\d+)",
+        "pulse": r"(?:نبض|النبض|دقات القلب)\s*(\d+)",
+        "weight": r"(?:وزن|الوزن)\s*(\d+)",
+        "next_checkup_date": r"(?:استشارة|موعد القادم|استشارة بعد|استشارة في)\s*(\d{4}-\d{2}-\d{2})"
+    }
+    
+    for field, pattern in patterns.items():
+        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+        if match:
+            val = match.group(1).strip()
+            if field == "blood_pressure":
+                 val = val.replace("على", "/")
+            fields[field] = val
+            
+    return fields

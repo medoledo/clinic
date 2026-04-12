@@ -14,7 +14,7 @@ from django.contrib.auth.decorators import login_required
 
 from accounts.decorators import doctor_required
 from .models import Patient, Visit, VisitFile, MedicalDictionary, TranscriptionCorrection
-from .utils import apply_personal_corrections, find_suggestions
+from .utils import apply_personal_corrections, find_suggestions, regex_parse_transcript
 
 
 # ─────────────────────────── Constants ────────────────────────────────────────
@@ -713,6 +713,10 @@ def save_correction(request):
 # ───────────────────────── Groq Transcription ─────────────────────────
 
 import tempfile
+try:
+    from openai import OpenAI as _OpenAI
+except ImportError:
+    _OpenAI = None
 from django.conf import settings as django_settings
 from django.views.decorators.http import require_POST
 from groq import Groq as _Groq
@@ -857,33 +861,54 @@ def transcribe_and_parse(request):
         # Apply personal learned corrections before parsing
         raw_transcript = apply_personal_corrections(raw_transcript, request.user)
 
-        # Step 2: Parse with Groq (LLaMA)
-        completion = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {
-                    "role": "system",
-                    "content": f"{PARSE_SYSTEM_PROMPT}\n\nIMPORTANT: Output ONLY a valid JSON object."
-                },
-                {
-                    "role": "user",
-                    "content": f"Parse this medical transcript into fields:\n\n{raw_transcript}"
-                }
-            ],
-            temperature=0.0,
-            response_format={"type": "json_object"}
-        )
-
-        response_text = completion.choices[0].message.content.strip()
-
-        # Clean response and parse JSON
-        response_text = response_text.replace('```json', '').replace('```', '').strip()
-        parsed_fields = json.loads(response_text)
+        # Step 2: Parse with Multi-Layer Fallback
+        parsed_fields = None
+        fallback_used = False
+        
+        try:
+            # Layer 1: Groq Llama (Primary)
+            completion = groq_client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[
+                    {"role": "system", "content": f"{PARSE_SYSTEM_PROMPT}\n\nIMPORTANT: Output ONLY a valid JSON object."},
+                    {"role": "user", "content": f"Parse this medical transcript into fields:\n\n{raw_transcript}"}
+                ],
+                temperature=0.0,
+                response_format={"type": "json_object"}
+            )
+            response_text = completion.choices[0].message.content.strip()
+            response_text = response_text.replace('```json', '').replace('```', '').strip()
+            parsed_fields = json.loads(response_text)
+            
+        except Exception as groq_err:
+            # Layer 2: OpenAI (Secondary Fallback)
+            openai_key = getattr(django_settings, 'OPENAI_API_KEY', None)
+            if openai_key and _OpenAI:
+                try:
+                    oa_client = _OpenAI(api_key=openai_key)
+                    oa_completion = oa_client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": f"{PARSE_SYSTEM_PROMPT}\n\nIMPORTANT: Output ONLY a valid JSON object."},
+                            {"role": "user", "content": f"Parse this medical transcript into fields:\n\n{raw_transcript}"}
+                        ],
+                        response_format={"type": "json_object"}
+                    )
+                    response_text = oa_completion.choices[0].message.content.strip()
+                    parsed_fields = json.loads(response_text)
+                except Exception:
+                    pass
+            
+            # Layer 3: Local Regex (Tertiary Fallback)
+            if not parsed_fields:
+                parsed_fields = regex_parse_transcript(raw_transcript)
+                fallback_used = True
 
         return JsonResponse({
             'success': True,
             'transcript': raw_transcript,
-            'fields': parsed_fields
+            'fields': parsed_fields,
+            'fallback_used': fallback_used
         })
 
     except json.JSONDecodeError:
