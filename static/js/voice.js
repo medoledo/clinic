@@ -11,6 +11,25 @@ const TRANSCRIBE_URL = '/transcribe-visit/';
 const SUGGESTIONS_URL = '/check-suggestions/';
 const SAVE_CORRECTION_URL = '/save-correction/';
 
+// --- i18n strings from template data attributes ---
+const recorderContainer = document.querySelector('.visit-recorder');
+const STRINGS = recorderContainer ? {
+    listening:       recorderContainer.dataset.statusListening,
+    processing:      recorderContainer.dataset.statusProcessing,
+    success:         recorderContainer.dataset.statusSuccess,
+    errorMic:        recorderContainer.dataset.statusErrorMic,
+    errorConnection: recorderContainer.dataset.statusErrorConnection,
+    offline:         recorderContainer.dataset.statusOffline,
+    offlineDone:     recorderContainer.dataset.statusOfflineDone,
+    empty:           recorderContainer.dataset.statusEmpty,
+    btnRecord:       recorderContainer.dataset.btnRecord,
+    btnStop:         recorderContainer.dataset.btnStop,
+    suggest:         recorderContainer.dataset.lblSuggest,
+    instead:         recorderContainer.dataset.lblInstead,
+    yes:             recorderContainer.dataset.lblYes,
+    no:              recorderContainer.dataset.lblNo,
+} : {};
+
 function getCSRFToken() {
     // Try cookie first
     const cookieMatch = document.cookie.match(/csrftoken=([^;]+)/);
@@ -70,11 +89,11 @@ async function startRecording() {
         mediaRecorder.start();
         isRecording = true;
         recordBtn.classList.add('recording');
-        recordBtn.innerHTML = 'ΓÅ╣∩╕Å Stop Recording';
-        setStatus('≡ƒÄÖ∩╕Å Recording... Speak now', 'recording');
+        recordBtn.innerHTML = STRINGS.btnStop;
+        setStatus(STRINGS.listening, 'recording');
 
     } catch (err) {
-        setStatus('Γ¥î ┘ä╪º ┘è┘à┘â┘å ╪º┘ä┘ê╪╡┘ê┘ä ┘ä┘ä┘à┘è┘â╪▒┘ê┘ü┘ê┘å', 'error');
+        setStatus(STRINGS.errorMic, 'error');
         console.error('Microphone error:', err);
     }
 }
@@ -84,8 +103,8 @@ function stopRecording() {
         mediaRecorder.stop();
         isRecording = false;
         recordBtn.classList.remove('recording');
-        recordBtn.innerHTML = '≡ƒÄÖ∩╕Å Record Visit';
-        setStatus('ΓÅ│ ╪¼╪º╪▒┘è ╪º┘ä╪¬╪¡┘ä┘è┘ä ╪╣╪¿╪▒ ╪º┘ä╪░┘â╪º╪í ╪º┘ä╪º╪╡╪╖┘å╪º╪╣┘è...', 'loading');
+        recordBtn.innerHTML = STRINGS.btnRecord;
+        setStatus(STRINGS.processing, 'loading');
     }
 }
 
@@ -106,17 +125,17 @@ async function sendRecording() {
 
         if (data.success && data.fields) {
             fillFields(data.fields);
-            setStatus('Γ£à ╪¬┘à ╪¬╪╣╪¿╪ª╪⌐ ╪º┘ä╪¡┘é┘ê┘ä ╪¿┘å╪¼╪º╪¡', 'success');
+            setStatus(STRINGS.success, 'success');
             setTimeout(resetStatusUI, 4000);
             // Check for suggestions after fields are filled
             await checkAllFieldsForSuggestions(data.fields);
         } else {
-            setStatus(`Γ¥î ${data.error || '╪¡╪»╪½ ╪«╪╖╪ú'}`, 'error');
+            setStatus(`${STRINGS.errorConnection}${data.error ? ': ' + data.error : ''}`, 'error');
             setTimeout(resetStatusUI, 6000);
         }
 
     } catch (err) {
-        setStatus('Γ¥î ╪«╪╖╪ú ┘ü┘è ╪º┘ä╪º╪¬╪╡╪º┘ä ╪¿╪º┘ä╪«╪º╪»┘à', 'error');
+        setStatus(STRINGS.errorConnection, 'error');
         console.error('Send error:', err);
         setTimeout(resetStatusUI, 6000);
     }
@@ -139,10 +158,10 @@ function showSuggestionPopup(fieldEl, originalWord, suggestedWord, onConfirm) {
     popup.className = 'suggestion-popup';
     popup.innerHTML = `
         <span class="suggestion-popup__text">
-            ┘ç┘ä ╪¬┘é╪╡╪»: <strong>${suggestedWord}</strong> ╪¿╪»┘ä╪º┘ï ┘à┘å "${originalWord}"╪ƒ
+            ${STRINGS.suggest} <strong>${suggestedWord}</strong> ${STRINGS.instead} "${originalWord}"؟
         </span>
-        <button class="suggestion-popup__yes" type="button">Γ£ô ┘å╪╣┘à</button>
-        <button class="suggestion-popup__no" type="button">Γ£ù ┘ä╪º</button>
+        <button class="suggestion-popup__yes" type="button">${STRINGS.yes}</button>
+        <button class="suggestion-popup__no" type="button">${STRINGS.no}</button>
     `;
 
     // Position popup near the field
@@ -261,7 +280,7 @@ async function checkAllFieldsForSuggestions(fields) {
 function startOfflineRecording() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        setStatus('[x] المتصفح لا يدعم التسجيل بدون إنترنت', 'error');
+        setStatus(STRINGS.errorMic, 'error');
         return;
     }
     isOfflineMode = true;
@@ -281,11 +300,11 @@ function startOfflineRecording() {
                 interim = text;
             }
         }
-        setStatus('[mic] [وضع بدون إنترنت] ' + (interim || fullTranscript), 'recording');
+        setStatus(STRINGS.offline + ' ' + (interim || fullTranscript), 'recording');
     };
 
     offlineRecognition.onerror = (event) => {
-        setStatus('[x] خطأ في التسجيل: ' + event.error, 'error');
+        setStatus(STRINGS.errorConnection + ': ' + event.error, 'error');
         stopOfflineRecording();
     };
 
@@ -297,8 +316,8 @@ function startOfflineRecording() {
 
     offlineRecognition.start();
     recordBtn.classList.add('recording');
-    recordBtn.innerHTML = '[stop] إيقاف التسجيل';
-    setStatus('[mic] وضع بدون إنترنت — جاري الاستماع...', 'recording');
+    recordBtn.innerHTML = STRINGS.btnStop;
+    setStatus(STRINGS.offline, 'recording');
 }
 
 function stopOfflineRecording() {
@@ -307,8 +326,8 @@ function stopOfflineRecording() {
         offlineRecognition.stop();
         offlineRecognition = null;
         recordBtn.classList.remove('recording');
-        recordBtn.innerHTML = String.fromCodePoint(0x1F3A4) + ' Record Visit';
-        setStatus('[...] جاري المعالجة...', 'loading');
+        recordBtn.innerHTML = STRINGS.btnRecord;
+        setStatus(STRINGS.processing, 'loading');
     }
 }
 
@@ -338,13 +357,14 @@ function fillFieldsOffline(transcript) {
         if (content) fields[current.fieldId] = content;
     }
     fillFields(fields);
-    setStatus('[!] تم التعبئة بوضع بدون إنترنت — الدقة أقل من المعتاد', 'warning');
+    setStatus(STRINGS.offlineDone, 'warning');
     setTimeout(() => setStatus('', 'info'), 6000);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     recordBtn = document.getElementById('visit-record-btn');
     if (!recordBtn) return;
+    recordBtn.innerHTML = STRINGS.btnRecord;
 
     recordBtn.addEventListener('click', () => {
         if (!isRecording && !isOfflineMode) {
@@ -372,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
              }
              isRecording = false;
              recordBtn.classList.remove('recording');
-             recordBtn.innerHTML = '≡ƒÄÖ∩╕Å Record Visit';
+        recordBtn.innerHTML = STRINGS.btnRecord;
              setStatus('Cancelled', 'error');
              setTimeout(resetStatusUI, 3000);
         }

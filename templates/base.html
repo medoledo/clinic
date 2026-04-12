@@ -478,8 +478,7 @@
                     {{ user.username|first|upper }}</div>
                 <div class="min-w-0">
                     <div class="text-white text-xs font-semibold truncate">
-                        {% if user.profile.role == 'doctor' and user.doctor_profile %}{{ user.doctor_profile.full_name
-                        }}{% else %}{{ user.username }}{% endif %}
+                        {% if user.doctor_profile %}{{ user.doctor_profile.full_name }}{% else %}{{ user.get_full_name|default:user.username }}{% endif %}
                     </div>
                     <div class="text-slate-400 text-xs">{{ user.profile.get_role_display }}</div>
                 </div>

@@ -22,7 +22,7 @@
         {% if visit.next_checkup_date %}
         <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 text-sm">
             <div class="text-blue-600 font-semibold">Next Checkup</div>
-            <div class="text-blue-800 font-bold">{{ visit.next_checkup_date|date:"F j, Y" }}</div>
+            <div class="text-blue-800 font-bold">{{ visit.next_checkup_date|date:"d M Y"|default:"—" }}</div>
         </div>
         {% endif %}
     </div>

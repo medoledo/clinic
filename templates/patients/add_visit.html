@@ -155,7 +155,21 @@
     </style>
 
     <div class="card p-5 border-l-4 border-l-blue-500 shadow-sm col-span-1 md:col-span-2 bg-blue-50/30">
-        <div class="visit-recorder">
+        <div class="visit-recorder"
+             data-status-listening="🎤 جاري الاستماع... تكلم الآن"
+             data-status-processing="⏳ جاري التحليل..."
+             data-status-success="✅ تم تعبئة الحقول بنجاح"
+             data-status-error-mic="❌ لا يمكن الوصول للميكروفون"
+             data-status-error-connection="❌ خطأ في الاتصال بالخادم"
+             data-status-offline="🎤 وضع بدون إنترنت — جاري الاستماع..."
+             data-status-offline-done="⚠️ تم التعبئة بوضع بدون إنترنت — الدقة أقل من المعتاد"
+             data-status-empty="❌ لم يتم التعرف على أي كلام"
+             data-btn-record="🎤 تسجيل الزيارة"
+             data-btn-stop="⏹️ إيقاف التسجيل"
+             data-lbl-suggest="هل تقصد:"
+             data-lbl-instead="بدلاً من"
+             data-lbl-yes="✔ نعم"
+             data-lbl-no="✘ لا">
             <button type="button" id="visit-record-btn" class="btn-record">
                 🎙️ Record Visit
             </button>
@@ -180,8 +194,8 @@
 
             <div class="card p-5 col-span-1">
                 <label class="form-label">Next Checkup Date</label>
-                <input name="next_checkup_date" id="next_checkup_date" type="text" class="form-input md:max-w-sm"
-                    value="{{ post.next_checkup_date|default:visit.next_checkup_date|default:'' }}" />
+                <input name="next_checkup_date" id="next_checkup_date" type="date" class="form-input md:max-w-sm"
+                    value="{{ post.next_checkup_date|default:visit.next_checkup_date|date:'Y-m-d'|default:'' }}" />
             </div>
             <div class="card p-5 border-2 border-primary/5 bg-gray-50/30 shadow-sm col-span-1 md:col-span-2">
                 <label class="form-label mb-3">Vital Signs</label>
@@ -396,14 +410,7 @@
                 altFormat: "F j, Y h:i K",
                 dateFormat: "Y-m-d\\TH:i",
             });
-            var fpCheckup = flatpickr("#next_checkup_date_picker", {
-                altInput: true,
-                altFormat: "m/d/Y",
-                dateFormat: "Y-m-d",
-                allowInput: true,
-                disableMobile: false,
-            });
-            if (fpCheckup.altInput) fpCheckup.altInput.placeholder = "mm/dd/yyyy";
+            // native date input used for next_checkup_date
         }
     });
 </script>
