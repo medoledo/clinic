@@ -3,6 +3,10 @@ let audioChunks = [];
 let isRecording = false;
 let recordBtn = null;
 
+// --- Offline fallback state ---
+let offlineRecognition = null;
+let isOfflineMode = false;
+
 const TRANSCRIBE_URL = '/transcribe-visit/';
 const SUGGESTIONS_URL = '/check-suggestions/';
 const SAVE_CORRECTION_URL = '/save-correction/';
@@ -66,11 +70,11 @@ async function startRecording() {
         mediaRecorder.start();
         isRecording = true;
         recordBtn.classList.add('recording');
-        recordBtn.innerHTML = '⏹️ Stop Recording';
-        setStatus('🎙️ Recording... Speak now', 'recording');
+        recordBtn.innerHTML = 'ΓÅ╣∩╕Å Stop Recording';
+        setStatus('≡ƒÄÖ∩╕Å Recording... Speak now', 'recording');
 
     } catch (err) {
-        setStatus('❌ لا يمكن الوصول للميكروفون', 'error');
+        setStatus('Γ¥î ┘ä╪º ┘è┘à┘â┘å ╪º┘ä┘ê╪╡┘ê┘ä ┘ä┘ä┘à┘è┘â╪▒┘ê┘ü┘ê┘å', 'error');
         console.error('Microphone error:', err);
     }
 }
@@ -80,8 +84,8 @@ function stopRecording() {
         mediaRecorder.stop();
         isRecording = false;
         recordBtn.classList.remove('recording');
-        recordBtn.innerHTML = '🎙️ Record Visit';
-        setStatus('⏳ جاري التحليل عبر الذكاء الاصطناعي...', 'loading');
+        recordBtn.innerHTML = '≡ƒÄÖ∩╕Å Record Visit';
+        setStatus('ΓÅ│ ╪¼╪º╪▒┘è ╪º┘ä╪¬╪¡┘ä┘è┘ä ╪╣╪¿╪▒ ╪º┘ä╪░┘â╪º╪í ╪º┘ä╪º╪╡╪╖┘å╪º╪╣┘è...', 'loading');
     }
 }
 
@@ -102,17 +106,17 @@ async function sendRecording() {
 
         if (data.success && data.fields) {
             fillFields(data.fields);
-            setStatus('✅ تم تعبئة الحقول بنجاح', 'success');
+            setStatus('Γ£à ╪¬┘à ╪¬╪╣╪¿╪ª╪⌐ ╪º┘ä╪¡┘é┘ê┘ä ╪¿┘å╪¼╪º╪¡', 'success');
             setTimeout(resetStatusUI, 4000);
             // Check for suggestions after fields are filled
             await checkAllFieldsForSuggestions(data.fields);
         } else {
-            setStatus(`❌ ${data.error || 'حدث خطأ'}`, 'error');
+            setStatus(`Γ¥î ${data.error || '╪¡╪»╪½ ╪«╪╖╪ú'}`, 'error');
             setTimeout(resetStatusUI, 6000);
         }
 
     } catch (err) {
-        setStatus('❌ خطأ في الاتصال بالخادم', 'error');
+        setStatus('Γ¥î ╪«╪╖╪ú ┘ü┘è ╪º┘ä╪º╪¬╪╡╪º┘ä ╪¿╪º┘ä╪«╪º╪»┘à', 'error');
         console.error('Send error:', err);
         setTimeout(resetStatusUI, 6000);
     }
@@ -135,10 +139,10 @@ function showSuggestionPopup(fieldEl, originalWord, suggestedWord, onConfirm) {
     popup.className = 'suggestion-popup';
     popup.innerHTML = `
         <span class="suggestion-popup__text">
-            هل تقصد: <strong>${suggestedWord}</strong> بدلاً من "${originalWord}"؟
+            ┘ç┘ä ╪¬┘é╪╡╪»: <strong>${suggestedWord}</strong> ╪¿╪»┘ä╪º┘ï ┘à┘å "${originalWord}"╪ƒ
         </span>
-        <button class="suggestion-popup__yes" type="button">✓ نعم</button>
-        <button class="suggestion-popup__no" type="button">✗ لا</button>
+        <button class="suggestion-popup__yes" type="button">Γ£ô ┘å╪╣┘à</button>
+        <button class="suggestion-popup__no" type="button">Γ£ù ┘ä╪º</button>
     `;
 
     // Position popup near the field
@@ -252,15 +256,107 @@ async function checkAllFieldsForSuggestions(fields) {
     }
 }
 
+// --- Offline fallback: Web Speech API ---
+
+function startOfflineRecording() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        setStatus('[x] المتصفح لا يدعم التسجيل بدون إنترنت', 'error');
+        return;
+    }
+    isOfflineMode = true;
+    offlineRecognition = new SpeechRecognition();
+    offlineRecognition.lang = 'ar';
+    offlineRecognition.continuous = true;
+    offlineRecognition.interimResults = true;
+    let fullTranscript = '';
+
+    offlineRecognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const text = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                fullTranscript += text + ' ';
+            } else {
+                interim = text;
+            }
+        }
+        setStatus('[mic] [وضع بدون إنترنت] ' + (interim || fullTranscript), 'recording');
+    };
+
+    offlineRecognition.onerror = (event) => {
+        setStatus('[x] خطأ في التسجيل: ' + event.error, 'error');
+        stopOfflineRecording();
+    };
+
+    offlineRecognition.onend = () => {
+        if (isOfflineMode && fullTranscript.trim()) {
+            fillFieldsOffline(fullTranscript.trim());
+        }
+    };
+
+    offlineRecognition.start();
+    recordBtn.classList.add('recording');
+    recordBtn.innerHTML = '[stop] إيقاف التسجيل';
+    setStatus('[mic] وضع بدون إنترنت — جاري الاستماع...', 'recording');
+}
+
+function stopOfflineRecording() {
+    if (offlineRecognition) {
+        isOfflineMode = false;
+        offlineRecognition.stop();
+        offlineRecognition = null;
+        recordBtn.classList.remove('recording');
+        recordBtn.innerHTML = String.fromCodePoint(0x1F3A4) + ' Record Visit';
+        setStatus('[...] جاري المعالجة...', 'loading');
+    }
+}
+
+function fillFieldsOffline(transcript) {
+    const fieldMap = {
+        'chief_complaint': ['شكوى', 'الشكوى', 'شكوة'],
+        'symptoms': ['أعراض', 'الأعراض', 'علامات'],
+        'diagnosis': ['تشخيص', 'التشخيص', 'تشخيصي'],
+        'treatment': ['علاج', 'العلاج', 'وصفة', 'الوصفة', 'دواء'],
+        'doctor_notes': ['ملاحظات', 'ملاحظات خاصة', 'نوت', 'نوتس']
+    };
+    const fields = {};
+    const triggers = [];
+    for (const [fieldId, keywords] of Object.entries(fieldMap)) {
+        for (const keyword of keywords) {
+            const idx = transcript.indexOf(keyword);
+            if (idx !== -1) triggers.push({ fieldId, keyword, idx });
+        }
+    }
+    triggers.sort((a, b) => a.idx - b.idx);
+    for (let i = 0; i < triggers.length; i++) {
+        const current = triggers[i];
+        const next = triggers[i + 1];
+        const start = current.idx + current.keyword.length;
+        const end = next ? next.idx : transcript.length;
+        const content = transcript.slice(start, end).trim();
+        if (content) fields[current.fieldId] = content;
+    }
+    fillFields(fields);
+    setStatus('[!] تم التعبئة بوضع بدون إنترنت — الدقة أقل من المعتاد', 'warning');
+    setTimeout(() => setStatus('', 'info'), 6000);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     recordBtn = document.getElementById('visit-record-btn');
     if (!recordBtn) return;
 
     recordBtn.addEventListener('click', () => {
-        if (!isRecording) {
-            startRecording();
-        } else {
+        if (!isRecording && !isOfflineMode) {
+            if (!navigator.onLine) {
+                startOfflineRecording();
+            } else {
+                startRecording();
+            }
+        } else if (isRecording) {
             stopRecording();
+        } else if (isOfflineMode) {
+            stopOfflineRecording();
         }
     });
 
@@ -276,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
              }
              isRecording = false;
              recordBtn.classList.remove('recording');
-             recordBtn.innerHTML = '🎙️ Record Visit';
+             recordBtn.innerHTML = '≡ƒÄÖ∩╕Å Record Visit';
              setStatus('Cancelled', 'error');
              setTimeout(resetStatusUI, 3000);
         }

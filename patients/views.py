@@ -710,10 +710,6 @@ def save_correction(request):
 # ───────────────────────── Groq Transcription ─────────────────────────
 
 import tempfile
-try:
-    from openai import OpenAI as _OpenAI
-except ImportError:
-    _OpenAI = None
 from django.conf import settings as django_settings
 from groq import Groq as _Groq
 
@@ -828,28 +824,9 @@ def transcribe_and_parse(request):
             parsed_fields = json.loads(response_text)
             
         except Exception as groq_err:
-            # Layer 2: OpenAI (Secondary Fallback)
-            openai_key = getattr(django_settings, 'OPENAI_API_KEY', None)
-            if openai_key and _OpenAI:
-                try:
-                    oa_client = _OpenAI(api_key=openai_key)
-                    oa_completion = oa_client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[
-                            {"role": "system", "content": f"{PARSE_SYSTEM_PROMPT}\n\nIMPORTANT: Output ONLY a valid JSON object."},
-                            {"role": "user", "content": f"Parse this medical transcript into fields:\n\n{raw_transcript}"}
-                        ],
-                        response_format={"type": "json_object"}
-                    )
-                    response_text = oa_completion.choices[0].message.content.strip()
-                    parsed_fields = json.loads(response_text)
-                except Exception:
-                    pass
-            
-            # Layer 3: Local Regex (Tertiary Fallback)
-            if not parsed_fields:
-                parsed_fields = regex_parse_transcript(raw_transcript)
-                fallback_used = True
+            # Groq parse failed: fall back to local regex (no OpenAI)
+            parsed_fields = regex_parse_transcript(raw_transcript)
+            fallback_used = True
 
         return JsonResponse({
             'success': True,

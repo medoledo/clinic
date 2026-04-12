@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
+from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db.models import Count, Max, Min, Q
@@ -66,13 +67,10 @@ def login_view(request):
     return render(request, 'accounts/login.html')
 
 
+@require_POST
 def logout_view(request):
-    """Logout must be POST to prevent CSRF logout via GET link."""
-    if request.method == 'POST':
-        logout(request)
-    # Gracefully handle GET (e.g. direct URL bar navigation) for compatibility
-    else:
-        logout(request)
+    """Logout only via POST — prevents CSRF logout attacks via GET."""
+    logout(request)
     return redirect('login')
 
 

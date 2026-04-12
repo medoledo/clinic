@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 {% block title %}Add Visit &mdash; {{ patient.name }} &mdash; MediTrack{% endblock %}
 {% block page_title %}{% if is_edit %}Edit Visit{% else %}Add Visit{% endif %}{% endblock %}
@@ -92,6 +92,7 @@
     .voice-status--loading { color: #d97706; }
     .voice-status--success { color: #16a34a; }
     .voice-status--error { color: #dc2626; }
+    .voice-status--warning { color: #d97706; }
 
     .recording-guide {
         padding: 12px 16px;
