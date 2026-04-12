@@ -209,14 +209,14 @@ async function checkAllFieldsForSuggestions(fields) {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': CSRF_TOKEN
                 },
-                body: JSON.stringify({ text })
+                body: JSON.stringify({ text: text })  // send FULL field text, not individual words
             });
 
             const data = await response.json();
 
             if (data.success) {
                 // Apply auto-corrections silently first
-                if (data.corrected_text !== text) {
+                if (data.corrected_text && data.corrected_text !== text) {
                     const fieldEl = document.getElementById(fieldId);
                     if (fieldEl) {
                         fieldEl.value = data.corrected_text;
@@ -230,7 +230,7 @@ async function checkAllFieldsForSuggestions(fields) {
                 }
             }
         } catch (err) {
-            console.error('Suggestion check failed:', err);
+            console.error('Suggestion check failed for field', fieldId, err);
         }
     }
 }

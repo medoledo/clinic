@@ -785,12 +785,14 @@ Parse the transcript and extract content for these fields:
 - blood_pressure: triggered by (ضغط، الضغط). Extract as text (e.g. 120/80).
 - pulse: triggered by (نبض، النبض، دقات القلب). Extract only the number.
 - weight: triggered by (وزن، الوزن). Extract only the number.
+- next_checkup_date: triggered by (استشارة، موعد القادم، استشارة بعد، استشارة في). Format: YYYY-MM-DD.
 
 Rules:
 - Extract ONLY what the doctor said for each field, nothing else
 - If a field was not mentioned, return empty string "" for it
 - Keep medical drug names exactly as spoken
 - Keep the text in the same language the doctor used (Arabic, English, or mixed)
+- If blood_pressure field contains "على" between two numbers, convert to "/" format. Example: "120 على 80" → "120/80"
 - Do NOT translate, summarize, or modify the content
 - Return ONLY a valid JSON object with no extra text, no markdown, no explanation
 
@@ -804,7 +806,8 @@ Return format:
   "temperature": "...",
   "blood_pressure": "...",
   "pulse": "...",
-  "weight": "..."
+  "weight": "...",
+  "next_checkup_date": "..."
 }
 """
 
@@ -836,6 +839,8 @@ def transcribe_and_parse(request):
             )
 
         raw_transcript = transcription.strip()
+        import re
+        raw_transcript = re.sub(r'(\d+)\s*على\s*(\d+)', r'\1/\2', raw_transcript) # Fix Arabic BP
         if not raw_transcript:
             return JsonResponse({'error': 'Empty transcript'}, status=400)
 

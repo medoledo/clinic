@@ -31,7 +31,7 @@ def apply_personal_corrections(text, doctor):
     return ' '.join(corrected)
 
 
-def find_suggestions(text, doctor, threshold=75):
+def find_suggestions(text, doctor, threshold=70):
     """
     Finds words in the text that are close to (but not exact matches for)
     words in the MedicalDictionary, and have not already been corrected.
@@ -83,7 +83,7 @@ def find_suggestions(text, doctor, threshold=75):
         result = process.extractOne(
             clean_word,
             dictionary_words,
-            scorer=fuzz.ratio,
+            scorer=fuzz.WRatio,
             score_cutoff=threshold
         )
 

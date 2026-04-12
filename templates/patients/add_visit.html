@@ -165,7 +165,7 @@
             <strong>نصيحة للتسجيل الذكي:</strong><br/>
             قل: <strong>"شكوى"</strong> ثم ما يشتكي منه المريض، <strong>"تشخيص"</strong> ثم التشخيص، 
             <strong>"علاج"</strong> ثم وصفة العلاج، <strong>"أعراض"</strong> ثم الأعراض،
-            <strong>"ملاحظات"</strong> ثم أية ملاحظات خاصة، وللعلامات الحيوية: <strong>"حرارة"</strong>، <strong>"ضغط"</strong>، <strong>"نبض"</strong>، و<strong>"وزن"</strong>.
+            <strong>"ملاحظات"</strong> ثم أية ملاحظات خاصة، وللعلامات الحيوية: <strong>"حرارة"</strong>، <strong>"ضغط"</strong>، <strong>"نبض"</strong>، و<strong>"وزن"</strong>، و<strong>"استشارة"</strong> للموعد القادم.
         </div>
     </div>
 
@@ -179,7 +179,7 @@
 
             <div class="card p-5 col-span-1">
                 <label class="form-label">Next Checkup Date</label>
-                <input name="next_checkup_date" id="next_checkup_date_picker" type="text" class="form-input md:max-w-sm"
+                <input name="next_checkup_date" id="next_checkup_date" type="text" class="form-input md:max-w-sm"
                     value="{{ post.next_checkup_date|default:visit.next_checkup_date|default:'' }}" />
             </div>
             <div class="card p-5 border-2 border-primary/5 bg-gray-50/30 shadow-sm col-span-1 md:col-span-2">
