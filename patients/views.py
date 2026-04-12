@@ -1,5 +1,4 @@
 import os
-import anthropic
 import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -825,6 +824,8 @@ def transcribe_and_parse(request):
             tmp_path = tmp.name
 
         # Step 1: Transcribe with Groq
+        if not django_settings.GROQ_API_KEY:
+            return JsonResponse({'error': 'GROQ API Key is missing. Please add GROQ_API_KEY to your .env file.'}, status=500)
         groq_client = _Groq(api_key=django_settings.GROQ_API_KEY)
         with open(tmp_path, 'rb') as f:
             transcription = groq_client.audio.transcriptions.create(
@@ -841,21 +842,24 @@ def transcribe_and_parse(request):
         # Apply personal learned corrections before parsing
         raw_transcript = apply_personal_corrections(raw_transcript, request.user)
 
-        # Step 2: Parse with Claude
-        claude_client = anthropic.Anthropic(api_key=django_settings.ANTHROPIC_API_KEY)
-        message = claude_client.messages.create(
-            model='claude-3-5-sonnet-20241022',
-            max_tokens=1024,
+        # Step 2: Parse with Groq (LLaMA)
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
             messages=[
                 {
-                    'role': 'user',
-                    'content': f'Parse this medical transcript into fields:\n\n{raw_transcript}'
+                    "role": "system",
+                    "content": f"{PARSE_SYSTEM_PROMPT}\n\nIMPORTANT: Output ONLY a valid JSON object."
+                },
+                {
+                    "role": "user",
+                    "content": f"Parse this medical transcript into fields:\n\n{raw_transcript}"
                 }
             ],
-            system=PARSE_SYSTEM_PROMPT
+            temperature=0.0,
+            response_format={"type": "json_object"}
         )
 
-        response_text = message.content[0].text.strip()
+        response_text = completion.choices[0].message.content.strip()
 
         # Clean response and parse JSON
         response_text = response_text.replace('```json', '').replace('```', '').strip()
