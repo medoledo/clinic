@@ -1,10 +1,16 @@
 from rapidfuzz import process, fuzz
+from django.core.cache import cache
 from .models import MedicalDictionary, TranscriptionCorrection
 
 
 def get_dictionary_words():
-    """Returns all words from MedicalDictionary as a list."""
-    return list(MedicalDictionary.objects.values_list('word', flat=True))
+    """Returns all words from MedicalDictionary, cached for 1 hour."""
+    cached = cache.get('medical_dictionary_words')
+    if cached is not None:
+        return cached
+    words = list(MedicalDictionary.objects.values_list('word', flat=True))
+    cache.set('medical_dictionary_words', words, timeout=3600)
+    return words
 
 
 def apply_personal_corrections(text, doctor):
@@ -18,13 +24,18 @@ def apply_personal_corrections(text, doctor):
     ).values('wrong_word', 'correct_word')
 
     correction_map = {c['wrong_word']: c['correct_word'] for c in corrections}
+    if not correction_map:
+        return text
 
     words = text.split()
     corrected = []
     for word in words:
+        # Strip punctuation to get clean word for lookup
         clean_word = word.strip('.,،؛؟!()[]')
         if clean_word in correction_map:
-            corrected.append(word.replace(clean_word, correction_map[clean_word]))
+            # Replace only the clean part, preserve surrounding punctuation
+            corrected_word = word.replace(clean_word, correction_map[clean_word], 1)
+            corrected.append(corrected_word)
         else:
             corrected.append(word)
 
@@ -67,7 +78,7 @@ def find_suggestions(text, doctor, threshold=70):
     suggestions = []
 
     for i, word in enumerate(words):
-        clean_word = word.strip('.,،؛؟!()[]')
+        clean_word = word.strip('.,،؛?!()[]')
         if not clean_word or len(clean_word) < 3:
             continue
 

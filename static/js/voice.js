@@ -6,9 +6,45 @@ let recordBtn = null;
 const TRANSCRIBE_URL = '/transcribe-visit/';
 const SUGGESTIONS_URL = '/check-suggestions/';
 const SAVE_CORRECTION_URL = '/save-correction/';
-const CSRF_TOKEN = document.querySelector('[name=csrfmiddlewaretoken]')?.value || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+function getCSRFToken() {
+    // Try cookie first
+    const cookieMatch = document.cookie.match(/csrftoken=([^;]+)/);
+    if (cookieMatch) return cookieMatch[1];
+    // Fallback to meta tag
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag) return metaTag.getAttribute('content');
+    // Fallback to hidden input
+    const hiddenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (hiddenInput) return hiddenInput.value;
+    return '';
+}
+const CSRF_TOKEN = getCSRFToken();
+
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 function setStatus(message, type = 'info') {
+    const statusEl = document.getElementById('voice-status');
+    if (!statusEl) return;
+    statusEl.innerText = message;
+    statusEl.className = `voice-status voice-status--${type}`;
+}
+
+function fillFields(fields) {
+    Object.entries(fields).forEach(([fieldId, value]) => {
+        if (!value || !value.trim()) return;
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+        const space = field.value && !field.value.endsWith(' ') ? ' ' : '';
+        field.value += space + value.trim();
+        field.dispatchEvent(new Event('input'));
+    });
+}
+
+function resetStatusUI() {
+    setStatus('', 'info');
     const statusEl = document.getElementById('voice-status');
     if (!statusEl) return;
     statusEl.innerText = message;
@@ -165,7 +201,7 @@ async function processSuggestions(suggestions, fieldId) {
                     if (confirmed) {
                         // Replace in field
                         fieldEl.value = fieldEl.value.replace(
-                            new RegExp(suggestion.original, 'g'),
+                            new RegExp(escapeRegex(suggestion.original), 'g'),
                             suggestion.suggestion
                         );
                         fieldEl.dispatchEvent(new Event('input'));

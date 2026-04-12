@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -696,6 +697,10 @@ def save_correction(request):
             defaults={'category': 'other'}
         )
 
+        # Invalidate dictionary cache
+        from django.core.cache import cache
+        cache.delete('medical_dictionary_words')
+
         return JsonResponse({
             'success': True,
             'message': f'Correction saved: {wrong_word} → {correct_word}',
@@ -753,14 +758,17 @@ def transcribe_audio(request):
             return JsonResponse({"error": "GROQ_API_KEY is not configured."}, status=500)
 
         client = _Groq(api_key=api_key)
-        with open(tmp_path, "rb") as f:
-            transcription = client.audio.transcriptions.create(
-                file=(os.path.basename(tmp_path), f),
-                model="whisper-large-v3",
-                prompt=MEDICAL_PROMPT,
-                response_format="text",
-            )
-        return JsonResponse({"transcript": transcription})
+        try:
+            with open(tmp_path, "rb") as f:
+                transcription = client.audio.transcriptions.create(
+                    file=(os.path.basename(tmp_path), f),
+                    model="whisper-large-v3",
+                    prompt=MEDICAL_PROMPT,
+                    response_format="text",
+                    timeout=30
+                )
+        except Exception as e:
+            return JsonResponse({"error": f"Transcription failed: {str(e)}"}, status=500)
 
     except Exception as exc:
         return JsonResponse({"error": str(exc)}, status=500)
@@ -830,16 +838,18 @@ def transcribe_and_parse(request):
         if not django_settings.GROQ_API_KEY:
             return JsonResponse({'error': 'GROQ API Key is missing. Please add GROQ_API_KEY to your .env file.'}, status=500)
         groq_client = _Groq(api_key=django_settings.GROQ_API_KEY)
-        with open(tmp_path, 'rb') as f:
-            transcription = groq_client.audio.transcriptions.create(
-                file=(os.path.basename(tmp_path), f),
-                model='whisper-large-v3',
-                prompt=MEDICAL_PROMPT,
-                response_format='text'
-            )
-
+        try:
+            with open(tmp_path, 'rb') as f:
+                transcription = groq_client.audio.transcriptions.create(
+                    file=(os.path.basename(tmp_path), f),
+                    model='whisper-large-v3',
+                    prompt=MEDICAL_PROMPT,
+                    response_format='text',
+                    timeout=30
+                )
+        except Exception as e:
+            return JsonResponse({'error': f'Transcription failed: {str(e)}'}, status=500)
         raw_transcript = transcription.strip()
-        import re
         raw_transcript = re.sub(r'(\d+)\s*على\s*(\d+)', r'\1/\2', raw_transcript) # Fix Arabic BP
         if not raw_transcript:
             return JsonResponse({'error': 'Empty transcript'}, status=400)
