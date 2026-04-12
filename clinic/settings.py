@@ -118,6 +118,17 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+
+# ─── CACHE ────────────────────────────────────────────────────────────────────
+# LocMemCache: in-process cache, zero dependencies.
+# Makes get_dictionary_words() actually cache the medical dictionary for 1 hour.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "meditrack-cache",
+    }
+}
+
 # ─── DEFAULT PRIMARY KEY ───────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.db.models import Count, Min, Q
+from django.db.models import Count, Max, Min, Q
 from django.utils import timezone
 from datetime import timedelta
 
@@ -117,18 +117,12 @@ def admin_dashboard(request):
         total=Count('id'),
         male=Count('id', filter=Q(gender='male')),
         female=Count('id', filter=Q(gender='female')),
-        with_visits=Count('id', filter=Q(visits__isnull=False)),
     )
     total_patients = patient_agg['total']
-    active_patients = total_patients  # All patients are considered active since is_active field was removed
-    inactive_patients = 0
     male_patients = patient_agg['male']
     female_patients = patient_agg['female']
     patients_with_visits = patients_qs.annotate(vc=Count('visits')).filter(vc__gt=0).count()
     patients_without_visits = total_patients - patients_with_visits
-
-    # Blood type breakdown removed — field was deleted in migration 0003
-    blood_types = {}
 
     # Visit stats
     total_visits = visits_qs.count()
@@ -172,6 +166,7 @@ def admin_dashboard(request):
 
     # ── Doctors leaderboard — ONE query with annotations ─────────────────────
     # Annotate all stats in a single DB round-trip instead of a per-doctor loop
+    from django.db.models import Max as _Max
     doctors_annotated = doctors_qs.annotate(
         patient_count=Count('patients', distinct=True),
         visit_count=Count('visits', distinct=True),
@@ -185,6 +180,7 @@ def admin_dashboard(request):
             filter=Q(visits__visit_date__date__gte=this_month_start),
             distinct=True,
         ),
+        last_visit_date=_Max('visits__visit_date'),
     ).order_by('-visit_count')
 
     doctors_data = []
@@ -194,9 +190,6 @@ def admin_dashboard(request):
         except DoctorProfile.DoesNotExist:
             full_name = doc.username
 
-        # last_active requires one extra query per doctor — acceptable at dashboard level
-        # (only shows top doctors, not millions of rows)
-        last_visit = Visit.objects.filter(doctor=doc).only('visit_date').order_by('-visit_date').first()
         doctors_data.append({
             'user': doc,
             'profile': doc.profile,
@@ -205,30 +198,23 @@ def admin_dashboard(request):
             'visit_count': doc.visit_count,
             'today_visits': doc.today_count,
             'month_visits': doc.month_count,
-            'last_active': last_visit.visit_date if last_visit else None,
+            'last_active': doc.last_visit_date,
         })
 
     # ── Most-visited patients — annotated, no extra per-patient queries ───────
     most_visited = (
         patients_qs
-        .annotate(vc=Count('visits'))
+        .annotate(vc=Count('visits'), last_visit_date=Max('visits__visit_date'))
         .filter(vc__gt=0)
         .order_by('-vc')[:10]
     )
     most_visited_data = []
     for p in most_visited:
-        last_v = Visit.objects.select_related('doctor__doctor_profile').filter(patient=p).order_by('-visit_date').first()
-        doctor_name = '—'
-        if last_v:
-            try:
-                doctor_name = last_v.doctor.doctor_profile.full_name
-            except DoctorProfile.DoesNotExist:
-                doctor_name = last_v.doctor.username
         most_visited_data.append({
             'patient': p,
             'visit_count': p.vc,
-            'last_visit': last_v.visit_date if last_v else None,
-            'doctor': doctor_name,
+            'last_visit': p.last_visit_date,
+            'doctor': '—',
         })
 
     no_visit_patients = (
@@ -243,42 +229,51 @@ def admin_dashboard(request):
         .order_by('-visit_date')[:15]
     )
 
-    # ── Daily breakdown for last 7 days — 7 queries (bounded, not N×rows) ─────
-    daily_breakdown = []
-    for i in range(7):
-        d = today - timedelta(days=6 - i)
-        day_visits = visits_qs.filter(visit_date__date=d).count()
-        daily_breakdown.append({
-            'date': d,
-            'day_name': d.strftime('%A'),
-            'visits': day_visits,
-        })
+    # ── Daily breakdown for last 7 days — single annotated query ──────────────
+    from django.db.models.functions import TruncDate
+    days_range = [today - timedelta(days=6 - i) for i in range(7)]
+    daily_counts = {
+        row['day']: row['cnt']
+        for row in visits_qs
+            .filter(visit_date__date__gte=days_range[0], visit_date__date__lte=today)
+            .annotate(day=TruncDate('visit_date'))
+            .values('day')
+            .annotate(cnt=Count('id'))
+    }
+    daily_breakdown = [
+        {'date': d, 'day_name': d.strftime('%A'), 'visits': daily_counts.get(d, 0)}
+        for d in days_range
+    ]
 
-    # Weekday analysis
+    # Weekday analysis — single annotated query
+    from django.db.models.functions import ExtractWeekDay
+    weekday_counts = {
+        row['wd']: row['cnt']
+        for row in visits_qs
+            .annotate(wd=ExtractWeekDay('visit_date'))
+            .values('wd')
+            .annotate(cnt=Count('id'))
+    }
     day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     weekday_data = []
     for i, name in enumerate(day_names):
         django_day = i + 2 if i < 6 else 1
-        wd_visits = visits_qs.filter(visit_date__week_day=django_day).count()
-        weekday_data.append({'name': name, 'visits': wd_visits})
+        weekday_data.append({'name': name, 'visits': weekday_counts.get(django_day, 0)})
     weekday_data.sort(key=lambda x: x['visits'], reverse=True)
     busiest_day = weekday_data[0]['name'] if weekday_data else '—'
 
     context = {
         'doctor_filter': doctor_filter,
         'doctor_filter_id': doctor_filter_id,
-        'all_doctors': User.objects.filter(profile__role='doctor').select_related('profile', 'doctor_profile'),
+        'all_doctors': doctors_qs,
         'total_doctors': total_doctors,
         'active_doctors': active_doctors,
         'inactive_doctors': inactive_doctors,
         'total_patients': total_patients,
-        'active_patients': active_patients,
-        'inactive_patients': inactive_patients,
         'male_patients': male_patients,
         'female_patients': female_patients,
         'patients_with_visits': patients_with_visits,
         'patients_without_visits': patients_without_visits,
-        'blood_types': blood_types,
         'total_visits': total_visits,
         'today_visits': today_visits,
         'this_week_visits': this_week_visits,
@@ -332,6 +327,7 @@ def manage_doctors(request):
                 filter=Q(visits__visit_date__date__gte=this_month_start),
                 distinct=True,
             ),
+            last_visit_date=Max('visits__visit_date'),
         )
         .order_by('-visit_count')
     )
@@ -347,12 +343,6 @@ def manage_doctors(request):
             spec = ''
             phone = ''
 
-        last_visit = (
-            Visit.objects.filter(doctor=doc)
-            .only('visit_date')
-            .order_by('-visit_date')
-            .first()
-        )
         doctors_data.append({
             'user': doc,
             'full_name': full_name,
@@ -362,7 +352,7 @@ def manage_doctors(request):
             'visit_count': doc.visit_count,
             'today_visits': doc.today_count,
             'month_visits': doc.month_count,
-            'last_active': last_visit.visit_date if last_visit else None,
+            'last_active': doc.last_visit_date,
         })
 
     context = {

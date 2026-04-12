@@ -1,5 +1,6 @@
 from functools import wraps
 from django.shortcuts import redirect
+from django.contrib.auth import logout
 from django.http import JsonResponse
 from .models import UserProfile
 
@@ -12,7 +13,6 @@ def doctor_required(view_func):
             return redirect('login')
         # Check is_active first to avoid an extra profile query for deactivated users
         if not request.user.is_active:
-            from django.contrib.auth import logout
             logout(request)
             return redirect('login')
         try:
