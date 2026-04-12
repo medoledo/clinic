@@ -1,3 +1,5 @@
+import re
+import json
 from rapidfuzz import process, fuzz
 from django.core.cache import cache
 from .models import MedicalDictionary, TranscriptionCorrection
@@ -58,18 +60,31 @@ def find_suggestions(text, doctor, threshold=70):
         ...
     ]
     """
-    # First apply personal corrections
-    corrected_text = apply_personal_corrections(text, doctor)
+    # Single DB query: fetch all personal corrections once
+    corrections_qs = list(
+        TranscriptionCorrection.objects.filter(doctor=doctor)
+        .values('wrong_word', 'correct_word')
+    )
+    correction_map = {c['wrong_word']: c['correct_word'] for c in corrections_qs}
+    known_corrections = set(correction_map.keys())
+
+    # Apply personal corrections inline (avoids second DB hit from apply_personal_corrections)
+    if correction_map:
+        words_raw = text.split()
+        corrected_words = []
+        for w in words_raw:
+            clean = w.strip('.,،؛؟!()[]')
+            if clean in correction_map:
+                corrected_words.append(w.replace(clean, correction_map[clean], 1))
+            else:
+                corrected_words.append(w)
+        corrected_text = ' '.join(corrected_words)
+    else:
+        corrected_text = text
 
     dictionary_words = get_dictionary_words()
     if not dictionary_words:
         return corrected_text, []
-
-    # Get personal correction map to skip already-known corrections
-    known_corrections = set(
-        TranscriptionCorrection.objects.filter(doctor=doctor)
-        .values_list('wrong_word', flat=True)
-    )
 
     # Get exact dictionary words set for fast lookup
     dictionary_set = set(w.lower() for w in dictionary_words)
@@ -110,8 +125,6 @@ def find_suggestions(text, doctor, threshold=70):
 
     return corrected_text, suggestions
 
-import re
-import json
 
 def regex_parse_transcript(text):
     """

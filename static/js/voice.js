@@ -45,25 +45,6 @@ function fillFields(fields) {
 
 function resetStatusUI() {
     setStatus('', 'info');
-    const statusEl = document.getElementById('voice-status');
-    if (!statusEl) return;
-    statusEl.innerText = message;
-    statusEl.className = `voice-status voice-status--${type}`;
-}
-
-function fillFields(fields) {
-    Object.entries(fields).forEach(([fieldId, value]) => {
-        if (!value || !value.trim()) return;
-        const field = document.getElementById(fieldId);
-        if (!field) return;
-        const space = field.value && !field.value.endsWith(' ') ? ' ' : '';
-        field.value += space + value.trim();
-        field.dispatchEvent(new Event('input'));
-    });
-}
-
-function resetStatusUI() {
-    setStatus('', 'info');
     document.querySelectorAll('.form-textarea').forEach(ta => ta.classList.remove('voice-active'));
 }
 

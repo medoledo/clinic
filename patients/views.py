@@ -7,9 +7,10 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Count, Max, Q
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
+from django.core.cache import cache
 from django.contrib.auth.decorators import login_required
 
 from accounts.decorators import doctor_required
@@ -108,7 +109,6 @@ def patient_list(request):
     page_num = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_num)
 
-    from django.db.models import Max
     # Re-fetch the paginated subset with annotations to avoid N+1 and heavy grouping on all rows
     page_ids = [p.id for p in page_obj.object_list]
     if page_ids:
@@ -261,7 +261,6 @@ def _fill_patient_from_post(patient, post):
     patient.phone = post.get('phone', '').strip()[:20]
     dob = post.get('date_of_birth', '').strip()
     if dob:
-        from django.utils.dateparse import parse_date
         parsed_dob = parse_date(dob)
         patient.date_of_birth = parsed_dob if parsed_dob else None
     else:
@@ -495,7 +494,6 @@ def edit_visit(request, pk):
         link_titles = request.POST.getlist('link_title')
         link_types = request.POST.getlist('link_type')
         link_notes = request.POST.getlist('link_notes')
-        offset = len(files)
 
         for i, link in enumerate(link_urls):
             link = link.strip()
@@ -698,7 +696,6 @@ def save_correction(request):
         )
 
         # Invalidate dictionary cache
-        from django.core.cache import cache
         cache.delete('medical_dictionary_words')
 
         return JsonResponse({
@@ -718,7 +715,6 @@ try:
 except ImportError:
     _OpenAI = None
 from django.conf import settings as django_settings
-from django.views.decorators.http import require_POST
 from groq import Groq as _Groq
 
 MEDICAL_PROMPT = (
@@ -731,55 +727,6 @@ MEDICAL_PROMPT = (
     "\u062f\u064a\u0643\u0644\u0648\u0641\u064a\u0646\u0627\u0643, \u0645\u064a\u0644\u0648\u0643\u0633\u064a\u0643\u0627\u0645, \u062f\u064a\u0643\u0633\u0627\u0645\u064a\u062b\u0627\u0632\u0648\u0646, \u0623\u0648\u0645\u0628\u0631\u0627\u0632\u0648\u0644, \u0644\u0648\u0633\u0627\u0631\u062a\u0627\u0646"
 )
 
-
-@doctor_required
-@require_POST
-def transcribe_audio(request):
-    """
-    Receives a WebM audio blob from the frontend voice recorder,
-    sends it to Groq Whisper Large-v3, and returns the transcript as JSON.
-    Authentication: @doctor_required (only logged-in doctors can call this).
-    CSRF: enforced by Django middleware — JS sends X-CSRFToken header.
-    """
-    audio_file = request.FILES.get("audio")
-    if not audio_file:
-        return JsonResponse({"error": "No audio file received."}, status=400)
-
-    # Limit audio file size to 25 MB (Groq hard limit)
-    if audio_file.size > 25 * 1024 * 1024:
-        return JsonResponse({"error": "Audio file exceeds 25 MB limit."}, status=400)
-
-    suffix = ".webm"
-    tmp_path = None
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            for chunk in audio_file.chunks():
-                tmp.write(chunk)
-            tmp_path = tmp.name
-
-        api_key = django_settings.GROQ_API_KEY
-        if not api_key:
-            return JsonResponse({"error": "GROQ_API_KEY is not configured."}, status=500)
-
-        client = _Groq(api_key=api_key)
-        try:
-            with open(tmp_path, "rb") as f:
-                transcription = client.audio.transcriptions.create(
-                    file=(os.path.basename(tmp_path), f),
-                    model="whisper-large-v3",
-                    prompt=MEDICAL_PROMPT,
-                    response_format="text",
-                    timeout=30
-                )
-        except Exception as e:
-            return JsonResponse({"error": f"Transcription failed: {str(e)}"}, status=500)
-
-    except Exception as exc:
-        return JsonResponse({"error": str(exc)}, status=500)
-
-    finally:
-        if tmp_path and os.path.exists(tmp_path):
-            os.unlink(tmp_path)
 
 
 PARSE_SYSTEM_PROMPT = """
