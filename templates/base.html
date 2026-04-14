@@ -6,6 +6,37 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}MediTrack{% endblock %}</title>
+    <script>
+        (function() {
+            var SIDEBAR_KEY = 'meditrack_sidebar_open';
+            var isOpen = localStorage.getItem(SIDEBAR_KEY) !== 'false';
+            if (!isOpen) {
+                document.documentElement.classList.add('sidebar-closed');
+            }
+        })();
+    </script>
+    <style>
+        /* Sidebar base styles */
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        #main-content {
+            transition: margin-left 0.3s ease-in-out;
+        }
+        
+        /* Closed state (immediate application if class present on html) */
+        .sidebar-closed #sidebar {
+            transform: translateX(-100%) !important;
+        }
+        .sidebar-closed #main-content {
+            margin-left: 0 !important;
+        }
+        
+        /* Ensure no transition on page load to prevent "closing animation" flicker */
+        .no-transition * {
+            transition: none !important;
+        }
+    </style>
     <meta name="description" content="MediTrack — Doctor Visit Records Management System" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -700,29 +731,15 @@
         // Sidebar toggle with localStorage persistence
         (function () {
             var toggle = document.getElementById('sidebar-toggle');
-            var sidebar = document.getElementById('sidebar');
-            var mainContent = document.getElementById('main-content');
-            if (!toggle || !sidebar || !mainContent) return;
-
             var SIDEBAR_KEY = 'meditrack_sidebar_open';
-            var isOpen = localStorage.getItem(SIDEBAR_KEY) !== 'false';
-
-            // Apply saved state on load
-            if (!isOpen) {
-                sidebar.style.transform = 'translateX(-100%)';
-                mainContent.style.marginLeft = '0';
-            }
+            
+            if (!toggle) return;
 
             toggle.addEventListener('click', function () {
-                isOpen = !isOpen;
+                var html = document.documentElement;
+                html.classList.toggle('sidebar-closed');
+                var isOpen = !html.classList.contains('sidebar-closed');
                 localStorage.setItem(SIDEBAR_KEY, String(isOpen));
-                if (isOpen) {
-                    sidebar.style.transform = 'translateX(0)';
-                    mainContent.style.marginLeft = '15rem';
-                } else {
-                    sidebar.style.transform = 'translateX(-100%)';
-                    mainContent.style.marginLeft = '0';
-                }
             });
         })();
 
