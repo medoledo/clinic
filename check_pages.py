@@ -145,6 +145,7 @@ def main():
         ("doctor",  "/patients/?gender=male",           [200]),
         ("doctor",  "/patients/add/",                   [200]),
         ("doctor",  "/pending-visits/",                 [200]),
+        ("doctor",  "/upcoming-visits/",                [200]),
         ("doctor",  "/search-patients/?q=a",            [200]),
     ]
     

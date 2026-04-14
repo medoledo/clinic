@@ -580,6 +580,72 @@ def delete_visit_file(request, pk):
     return render(request, 'patients/confirm_delete_file.html', {'file': vf})
 
 
+@doctor_required
+def upcoming_visits(request):
+    """Shows patients with checkups scheduled for today and tomorrow."""
+    today = timezone.localtime(timezone.now()).date()
+    tomorrow = today + timezone.timedelta(days=1)
+
+    today_checkups = (
+        Patient.objects
+        .filter(
+            doctor=request.user,
+            visits__next_checkup_date=today,
+        )
+        .select_related('doctor')
+        .annotate(
+            last_visit_date=Max('visits__visit_date'),
+            visit_count=Count('visits'),
+        )
+        .order_by('name')
+        .distinct()
+    )
+
+    tomorrow_checkups = (
+        Patient.objects
+        .filter(
+            doctor=request.user,
+            visits__next_checkup_date=tomorrow,
+        )
+        .select_related('doctor')
+        .annotate(
+            last_visit_date=Max('visits__visit_date'),
+            visit_count=Count('visits'),
+        )
+        .order_by('name')
+        .distinct()
+    )
+
+    # Get the actual Visit objects for each patient so we can show checkup details
+    today_visits_map = {}
+    for patient in today_checkups:
+        visit = Visit.objects.filter(
+            patient=patient,
+            next_checkup_date=today,
+        ).order_by('-visit_date').first()
+        if visit:
+            today_visits_map[patient.id] = visit
+
+    tomorrow_visits_map = {}
+    for patient in tomorrow_checkups:
+        visit = Visit.objects.filter(
+            patient=patient,
+            next_checkup_date=tomorrow,
+        ).order_by('-visit_date').first()
+        if visit:
+            tomorrow_visits_map[patient.id] = visit
+
+    context = {
+        'today_checkups': today_checkups,
+        'tomorrow_checkups': tomorrow_checkups,
+        'today_visits_map': today_visits_map,
+        'tomorrow_visits_map': tomorrow_visits_map,
+        'today_count': today_checkups.count(),
+        'tomorrow_count': tomorrow_checkups.count(),
+    }
+    return render(request, 'patients/upcoming_visits.html', context)
+
+
 # ─────────────────────────── Pending Visits ───────────────────────────────────
 
 @doctor_required

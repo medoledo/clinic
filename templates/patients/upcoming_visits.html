@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load visit_extras %}
+{% block title %}Upcoming Checkups &#8212; MediTrack{% endblock %}
+{% block page_title %}Upcoming Checkups{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'patient_list' %}" class="btn btn-secondary">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+    All Patients
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if today_count == 0 and tomorrow_count == 0 %}
+<!-- Empty State -->
+<div class="flex flex-col items-center justify-center py-16">
+    <div class="w-20 h-20 rounded-full bg-bgpage flex items-center justify-center mb-5">
+        <svg class="w-10 h-10 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+    </div>
+    <h3 class="text-lg font-bold text-textmain mb-1">No Upcoming Checkups</h3>
+    <p class="text-muted text-sm">No patients are scheduled for today or tomorrow.</p>
+</div>
+{% else %}
+
+<!-- Summary Row -->
+<div class="flex items-center gap-3 mb-6">
+    <div class="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg">
+        <span class="text-2xl font-bold text-primary">{{ today_count }}</span>
+        <span class="text-xs font-semibold text-primary uppercase">Today</span>
+    </div>
+    <div class="flex items-center gap-2 px-4 py-2 bg-warning/10 rounded-lg">
+        <span class="text-2xl font-bold text-warning">{{ tomorrow_count }}</span>
+        <span class="text-xs font-semibold text-warning uppercase">Tomorrow</span>
+    </div>
+    <div class="ml-auto text-xs text-muted">{{ today_count|add:tomorrow_count }} total patient{{ today_count|add:tomorrow_count|pluralize }}</div>
+</div>
+
+<!-- Today's Checkups -->
+{% if today_count > 0 %}
+<div class="mb-8">
+    <div class="flex items-center gap-2 mb-4">
+        <span class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+        </span>
+        <div>
+            <h2 class="text-base font-bold text-textmain leading-tight">Today</h2>
+            <p class="text-xs text-muted">{{ today_count }} patient{{ today_count|pluralize }} expected</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        {% for patient in today_checkups %}
+        {% with visit=today_visits_map|get_item:patient.id %}
+        <a href="{% if visit %}{% url 'visit_detail' visit.id %}{% else %}{% url 'add_visit' patient.id %}{% endif %}" class="card p-4 hover:shadow-lg hover:border-primary/30 transition-all duration-200 group block no-underline">
+            <!-- Patient Name & Gender -->
+            <div class="flex items-center gap-2 mb-3">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 {% if patient.gender == 'female' %}bg-pink-100 text-pink-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                    {{ patient.name|first|upper }}
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="font-semibold text-textmain text-sm truncate">{{ patient.name }}</div>
+                    {% if patient.phone %}
+                    <div class="text-xs text-muted">{{ patient.phone }}</div>
+                    {% endif %}
+                </div>
+                <span class="badge {% if patient.gender == 'female' %}badge-danger{% else %}badge-blue{% endif %} text-[10px]">
+                    {% if patient.gender == 'female' %}Female{% else %}Male{% endif %}
+                </span>
+            </div>
+
+            <!-- Visit Info -->
+            {% if visit and visit.diagnosis %}
+            <div class="text-xs text-muted mb-3 line-clamp-2 border-t border-border pt-2">
+                {{ visit.diagnosis|truncatechars:80 }}
+            </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="flex items-center gap-2 pt-2 border-t border-border mt-2">
+                {% if visit %}
+                <span class="inline-flex items-center gap-1 text-xs font-medium text-primary group-hover:underline">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    View Visit
+                </span>
+                {% endif %}
+                <span class="inline-flex items-center gap-1 text-xs font-medium text-success group-hover:underline {% if visit %}ml-auto{% endif %}">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    {% if visit %}New Visit{% else %}Add Visit{% endif %}
+                </span>
+            </div>
+        </a>
+        {% endwith %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Tomorrow's Checkups -->
+{% if tomorrow_count > 0 %}
+<div class="mb-8">
+    <div class="flex items-center gap-2 mb-4">
+        <span class="w-8 h-8 rounded-lg bg-warning flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </span>
+        <div>
+            <h2 class="text-base font-bold text-textmain leading-tight">Tomorrow</h2>
+            <p class="text-xs text-muted">{{ tomorrow_count }} patient{{ tomorrow_count|pluralize }} expected</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        {% for patient in tomorrow_checkups %}
+        {% with visit=tomorrow_visits_map|get_item:patient.id %}
+        <a href="{% if visit %}{% url 'visit_detail' visit.id %}{% else %}{% url 'add_visit' patient.id %}{% endif %}" class="card p-4 hover:shadow-lg hover:border-primary/30 transition-all duration-200 group block no-underline">
+            <!-- Patient Name & Gender -->
+            <div class="flex items-center gap-2 mb-3">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 {% if patient.gender == 'female' %}bg-pink-100 text-pink-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                    {{ patient.name|first|upper }}
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="font-semibold text-textmain text-sm truncate">{{ patient.name }}</div>
+                    {% if patient.phone %}
+                    <div class="text-xs text-muted">{{ patient.phone }}</div>
+                    {% endif %}
+                </div>
+                <span class="badge {% if patient.gender == 'female' %}badge-danger{% else %}badge-blue{% endif %} text-[10px]">
+                    {% if patient.gender == 'female' %}Female{% else %}Male{% endif %}
+                </span>
+            </div>
+
+            <!-- Visit Info -->
+            {% if visit and visit.diagnosis %}
+            <div class="text-xs text-muted mb-3 line-clamp-2 border-t border-border pt-2">
+                {{ visit.diagnosis|truncatechars:80 }}
+            </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="flex items-center gap-2 pt-2 border-t border-border mt-2">
+                {% if visit %}
+                <span class="inline-flex items-center gap-1 text-xs font-medium text-primary group-hover:underline">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    View Visit
+                </span>
+                {% endif %}
+                <span class="inline-flex items-center gap-1 text-xs font-medium text-success group-hover:underline {% if visit %}ml-auto{% endif %}">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    {% if visit %}New Visit{% else %}Add Visit{% endif %}
+                </span>
+            </div>
+        </a>
+        {% endwith %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

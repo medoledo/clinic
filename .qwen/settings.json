@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(c:\\users\\medol\\onedrive\\desktop\\clinic\\scripts\\activate)",
+      "Bash(python *)",
+      "Bash(taskkill *)",
+      "Bash(del *)"
+    ]
+  },
+  "$version": 3
+}
