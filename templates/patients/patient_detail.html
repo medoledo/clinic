@@ -67,8 +67,7 @@
 <div class="card p-6 mb-6">
     <div class="flex items-start justify-between flex-wrap gap-4">
         <div class="flex items-center gap-4">
-            <div
-                class="w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-2xl flex-shrink-0 {% if patient.gender == 'female' %}bg-pink-100 text-pink-600{% else %}bg-blue-100 text-blue-600{% endif %}">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-2xl flex-shrink-0 {% if patient.gender == 'female' %}bg-pink-100 text-pink-600{% else %}bg-blue-100 text-blue-600{% endif %}">
                 {{ patient.name|first|upper }}
             </div>
             <div>
@@ -81,7 +80,6 @@
             </div>
         </div>
     </div>
-
     <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 mt-5 pt-5 border-t border-border text-sm">
         {% if patient.phone %}
         <div><span class="text-muted text-xs block mb-0.5">Phone</span><span class="font-medium">{{ patient.phone }}</span></div>
@@ -102,72 +100,106 @@
 </div>
 
 <!-- Visit History -->
-<div class="card">
-    <div class="px-6 py-4 border-b border-border flex items-center justify-between">
-        <h3 class="font-bold text-textmain">Visit History</h3>
-        <div class="flex gap-2">
-            <a href="{% url 'patient_files' patient.pk %}" class="btn btn-secondary !py-2 !px-4 !text-xs"> View
-                Files</a>
-            <a href="{% url 'add_visit' patient.pk %}" class="btn btn-primary !py-2 !px-4 !text-xs">+ Add Visit</a>
-        </div>
+<div class="mb-4 flex items-center justify-between">
+    <h3 class="text-base font-bold text-textmain">Visit History</h3>
+    <div class="flex gap-2">
+        <a href="{% url 'patient_files' patient.pk %}" class="btn btn-secondary !py-2 !px-4 !text-xs">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/>
+            </svg>
+            Files
+        </a>
+        <a href="{% url 'add_visit' patient.pk %}" class="btn btn-primary !py-2 !px-4 !text-xs">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Add Visit
+        </a>
     </div>
+</div>
 
-    {% if page_obj.object_list %}
-    <ul class="divide-y divide-border">
-        {% for visit in page_obj %}
-        <li>
-            <a href="{% url 'visit_detail' visit.pk %}"
-                class="flex items-start gap-4 px-6 py-4 hover:bg-gray-50 transition-colors group">
-                <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+{% if page_obj.object_list %}
+<div class="space-y-3">
+    {% for visit in page_obj %}
+    <a href="{% url 'visit_detail' visit.pk %}" class="block card hover:shadow-md hover:border-primary/30 transition-all duration-200 group">
+        <div class="p-4">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-semibold text-textmain">{{ visit.visit_date|date:"F j, Y" }}</span>
+                {% if visit.next_checkup_date %}
+                <span class="badge badge-blue !text-[10px] flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    {{ visit.next_checkup_date|date:"j M Y" }}
+                </span>
+                {% endif %}
+            </div>
+            {% if visit.chief_complaint %}
+            <p class="text-sm text-textmain line-clamp-1">{{ visit.chief_complaint }}</p>
+            {% elif visit.diagnosis_summary %}
+            <p class="text-sm text-muted line-clamp-1">Dx: {{ visit.diagnosis_summary }}</p>
+            {% else %}
+            <p class="text-sm text-muted line-clamp-1">No notes recorded</p>
+            {% endif %}
+            <div class="flex items-center gap-2 mt-2 text-xs text-muted">
+                {% if visit.has_files %}
+                <span class="flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                    Files
+                </span>
+                {% endif %}
+                {% if visit.has_links %}
+                <span class="flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    Links
+                </span>
+                {% endif %}
+                {% if visit.temperature or visit.blood_pressure or visit.pulse or visit.weight %}
+                <span class="flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    Vitals
+                </span>
+                {% endif %}
+                <span class="ml-auto flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-muted group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                     </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-semibold text-sm text-textmain">{{ visit.visit_date|date:"F j, Y" }} &mdash; {{ visit.visit_date|date:"g:i A" }}</span>
-                        {% if visit.has_files %}<span class="badge badge-blue !text-xs">&#128206; Files</span>{% endif %}{% if visit.has_links %}<span class="badge badge-indigo !text-xs ml-1">&#128279; Links</span>{% endif %}
-                    </div>
-                                        {% if visit.next_checkup_date %}
-                    <p class="text-xs text-blue-600 font-semibold mt-1 flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        Next: {{ visit.next_checkup_date|date:"j M Y" }}
-                    </p>
-                    {% endif %}
-                    <p class="text-xs text-muted mt-0.5 truncate">{{ visit.chief_complaint }}</p>
-                    {% if visit.diagnosis_summary %}
-                    <p class="text-xs text-gray-600 mt-0.5 truncate">Dx: {{ visit.diagnosis_summary }}</p>
-                    {% endif %}
-                </div>
-                <svg class="w-4 h-4 text-muted group-hover:text-primary flex-shrink-0 mt-1 transition-colors"
-                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </a>
-        </li>
-        {% endfor %}
-    </ul>
-    {% if page_obj.has_other_pages %}
-    <div class="flex items-center justify-center gap-2 py-4 border-t border-border">
-        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}"
-            class="btn btn-secondary !py-2 !px-4">&#8592; Prev</a>{% endif %}
-        <span class="text-sm text-muted">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}"
-            class="btn btn-secondary !py-2 !px-4">Next &#8594;</a>{% endif %}
-    </div>
+                </span>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% if page_obj.has_other_pages %}
+<div class="flex items-center justify-center gap-2 mt-6">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-secondary !py-2 !px-4 !text-xs">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Prev
+    </a>
     {% endif %}
-    {% else %}
-    <div class="text-center py-12">
-        <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <p class="text-muted font-medium mb-3">No visits recorded yet.</p>
-        <a href="{% url 'add_visit' patient.pk %}" class="btn btn-primary">Add First Visit</a>
-    </div>
+    <span class="text-xs text-muted px-2">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="btn btn-secondary !py-2 !px-4 !text-xs">
+        Next
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </a>
     {% endif %}
 </div>
+{% endif %}
+{% else %}
+<div class="card p-12 text-center">
+    <div class="w-16 h-16 rounded-full bg-bgpage flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+    </div>
+    <h4 class="text-sm font-bold text-textmain mb-1">No visits recorded yet</h4>
+    <p class="text-xs text-muted mb-4">Start tracking this patient&#39;s medical history.</p>
+    <a href="{% url 'add_visit' patient.pk %}" class="btn btn-primary !text-xs">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Add First Visit
+    </a>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -197,49 +229,34 @@
                     } else { ageDisplay.style.display = 'none'; }
                 }
             });
-
             if (fpDob && fpDob.altInput) {
                 fpDob.altInput.placeholder = "mm/dd/yyyy";
-
-                // ── Input mask: digits only, auto-insert "/" ──
                 fpDob.altInput.addEventListener('input', function(e) {
                     var pos = this.selectionStart;
-                    var raw = this.value.replace(/\D/g, '').slice(0, 8); // max 8 digits
+                    var raw = this.value.replace(/\D/g, '').slice(0, 8);
                     var masked = '';
-                    if (raw.length > 4) {
-                        masked = raw.slice(0, 2) + '/' + raw.slice(2, 4) + '/' + raw.slice(4);
-                    } else if (raw.length > 2) {
-                        masked = raw.slice(0, 2) + '/' + raw.slice(2);
-                    } else {
-                        masked = raw;
-                    }
+                    if (raw.length > 4) { masked = raw.slice(0, 2) + '/' + raw.slice(2, 4) + '/' + raw.slice(4); }
+                    else if (raw.length > 2) { masked = raw.slice(0, 2) + '/' + raw.slice(2); }
+                    else { masked = raw; }
                     this.value = masked;
-                    // Restore cursor position accounting for inserted slashes
                     var slashesBeforeOld = (this.value.slice(0, pos).match(/\//g) || []).length;
                     this.setSelectionRange(pos + slashesBeforeOld, pos + slashesBeforeOld);
                 });
-
-                // Block non-digit keys except control keys
                 fpDob.altInput.addEventListener('keydown', function(e) {
                     var allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'];
                     if (allowed.includes(e.key)) return;
                     if (!/^\d$/.test(e.key)) e.preventDefault();
                 });
-
-                // On blur: parse the typed date and tell Flatpickr
                 fpDob.altInput.addEventListener('blur', function() {
                     var parts = this.value.split('/');
                     if (parts.length === 3 && parts[2].length === 4) {
                         var d = new Date(parts[2] + '-' + parts[0].padStart(2,'0') + '-' + parts[1].padStart(2,'0'));
-                        if (!isNaN(d.getTime())) {
-                            fpDob.setDate(d, true);
-                        }
+                        if (!isNaN(d.getTime())) { fpDob.setDate(d, true); }
                     }
                 });
             }
         }
     }
-
     function getCookie(name) {
         var value = '; ' + document.cookie;
         var parts = value.split('; ' + name + '=');
@@ -248,56 +265,40 @@
     }
     const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
     const csrfToken = csrfInput ? csrfInput.value : '';
-
     function openModal(id) {
         document.getElementById(id).classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
-
     function closeModal(id) {
         document.getElementById(id).classList.add('hidden');
         document.body.style.overflow = '';
         var form = document.getElementById(id).querySelector('form');
         if (form) form.reset();
     }
-
     document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
         overlay.addEventListener('click', function (e) {
-            if (e.target === overlay) {
-                overlay.classList.add('hidden');
-                document.body.style.overflow = '';
-            }
+            if (e.target === overlay) { overlay.classList.add('hidden'); document.body.style.overflow = ''; }
         });
     });
-
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
-            document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(function (m) {
-                m.classList.add('hidden');
-            });
+            document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(function (m) { m.classList.add('hidden'); });
             document.body.style.overflow = '';
         }
     });
-
     function showSpinner(btnId, textId, spinnerId) {
         document.getElementById(btnId).disabled = true;
         document.getElementById(textId).textContent = 'Saving...';
         document.getElementById(spinnerId).classList.remove('hidden');
     }
-
     function hideSpinner(btnId, textId, spinnerId, originalText) {
         document.getElementById(btnId).disabled = false;
         document.getElementById(textId).textContent = originalText;
         document.getElementById(spinnerId).classList.add('hidden');
     }
-
     function showMessage(msg, type) {
         var container = document.querySelector('.px-6.pt-4.space-y-2');
-        if (!container) {
-            container = document.createElement('div');
-            container.className = 'px-6 pt-4 space-y-2';
-            document.querySelector('main').prepend(container);
-        }
+        if (!container) { container = document.createElement('div'); container.className = 'px-6 pt-4 space-y-2'; document.querySelector('main').prepend(container); }
         var colors = type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800';
         var icon = type === 'success' ? '&#10003;' : '&times;';
         var div = document.createElement('div');
@@ -306,87 +307,50 @@
         container.appendChild(div);
         setTimeout(function () { div.remove(); }, 5000);
     }
-
     function openEditPatientModal(pk) {
-        fetch('/patients/' + pk + '/edit/', {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        }).then(function (r) { return r.text(); }).then(function (html) {
-            document.getElementById('edit-patient-form-container').innerHTML = html;
-            initModalFlatpickr('edit-patient-form-container');
-            openModal('edit-patient-modal');
-        });
+        fetch('/patients/' + pk + '/edit/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                document.getElementById('edit-patient-form-container').innerHTML = html;
+                initModalFlatpickr('edit-patient-form-container');
+                openModal('edit-patient-modal');
+            });
     }
-
     function submitEditPatient(e) {
         e.preventDefault();
         showSpinner('edit-submit-btn', 'edit-submit-text', 'edit-submit-spinner');
         var form = document.getElementById('edit-patient-form');
         var data = new FormData(form);
         var pk = data.get('patient_id');
-
-        fetch('/patients/' + pk + '/edit/', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
-            body: data
-        }).then(function (r) {
-            var ct = r.headers.get('content-type');
-            if (ct && ct.includes('application/json')) return r.json();
-            return r.text().then(function (txt) { throw new Error('Server error.'); });
-        }).then(function (data) {
-            hideSpinner('edit-submit-btn', 'edit-submit-text', 'edit-submit-spinner', 'Save Changes');
-            if (data.success) {
-                showMessage(data.message, 'success');
-                closeModal('edit-patient-modal');
-                location.reload();
-            } else {
-                showMessage(data.message, 'error');
-            }
-        }).catch(function (err) {
-            hideSpinner('edit-submit-btn', 'edit-submit-text', 'edit-submit-spinner', 'Save Changes');
-            showMessage(err.message, 'error');
-        });
+        fetch('/patients/' + pk + '/edit/', { method: 'POST', headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }, body: data })
+            .then(function (r) { var ct = r.headers.get('content-type'); if (ct && ct.includes('application/json')) return r.json(); return r.text().then(function (txt) { throw new Error('Server error.'); }); })
+            .then(function (data) {
+                hideSpinner('edit-submit-btn', 'edit-submit-text', 'edit-submit-spinner', 'Save Changes');
+                if (data.success) { showMessage(data.message, 'success'); closeModal('edit-patient-modal'); location.reload(); }
+                else { showMessage(data.message, 'error'); }
+            }).catch(function (err) { hideSpinner('edit-submit-btn', 'edit-submit-text', 'edit-submit-spinner', 'Save Changes'); showMessage(err.message, 'error'); });
     }
-
     function openDeletePatientModal(pk, name) {
         document.getElementById('delete-patient-id').value = pk;
         document.getElementById('delete-patient-name').textContent = name;
         openModal('delete-patient-modal');
     }
-
     function submitDeletePatient(e) {
         e.preventDefault();
         showSpinner('delete-submit-btn', 'delete-submit-text', 'delete-submit-spinner');
         var form = document.getElementById('delete-patient-form');
         var data = new FormData(form);
         var pk = document.getElementById('delete-patient-id').value;
-
-        fetch('/patients/' + pk + '/delete/', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
-            body: data
-        }).then(function (r) {
-            var ct = r.headers.get('content-type');
-            if (ct && ct.includes('application/json')) return r.json();
-            return r.text().then(function (txt) { throw new Error('Server error.'); });
-        })
+        fetch('/patients/' + pk + '/delete/', { method: 'POST', headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }, body: data })
+            .then(function (r) { var ct = r.headers.get('content-type'); if (ct && ct.includes('application/json')) return r.json(); return r.text().then(function (txt) { throw new Error('Server error.'); }); })
             .then(function (data) {
                 hideSpinner('delete-submit-btn', 'delete-submit-text', 'delete-submit-spinner', 'Delete');
-                if (data.success) {
-                    showMessage(data.message, 'success');
-                    closeModal('delete-patient-modal');
-                    window.location.href = '{% url "patient_list" %}';
-                } else {
-                    showMessage(data.message || 'Failed to delete patient.', 'error');
-                }
-            })
-            .catch(function (err) {
-                hideSpinner('delete-submit-btn', 'delete-submit-text', 'delete-submit-spinner', 'Delete');
-                showMessage(err.message, 'error');
-            });
+                if (data.success) { showMessage(data.message, 'success'); closeModal('delete-patient-modal'); window.location.href = '{% url "patient_list" %}'; }
+                else { showMessage(data.message || 'Failed to delete patient.', 'error'); }
+            }).catch(function (err) { hideSpinner('delete-submit-btn', 'delete-submit-text', 'delete-submit-spinner', 'Delete'); showMessage(err.message, 'error'); });
     }
 </script>
 
-<!-- Edit Patient Modal -->
 <div id="edit-patient-modal" class="modal-overlay hidden">
     <div class="modal-content max-w-lg">
         <div class="flex items-center justify-between mb-6">
@@ -401,7 +365,6 @@
     </div>
 </div>
 
-<!-- Delete Patient Modal -->
 <div id="delete-patient-modal" class="modal-overlay hidden">
     <div class="modal-content max-w-md">
         <div class="flex items-center justify-between mb-6">
@@ -412,8 +375,7 @@
                 </svg>
             </button>
         </div>
-        <p class="text-sm text-muted mb-2">Are you sure you want to delete <strong id="delete-patient-name"></strong>?
-        </p>
+        <p class="text-sm text-muted mb-2">Are you sure you want to delete <strong id="delete-patient-name"></strong>?</p>
         <p class="text-sm text-danger mb-6">This will also delete all visits and files for this patient.</p>
         <form id="delete-patient-form" onsubmit="submitDeletePatient(event)">
             {% csrf_token %}
@@ -423,60 +385,17 @@
                     <span id="delete-submit-text">Delete</span>
                     <span id="delete-submit-spinner" class="hidden spinner"></span>
                 </button>
-                <button type="button" onclick="closeModal('delete-patient-modal')"
-                    class="btn btn-secondary">Cancel</button>
+                <button type="button" onclick="closeModal('delete-patient-modal')" class="btn btn-secondary">Cancel</button>
             </div>
         </form>
     </div>
 </div>
 
 <style>
-    .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 100;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn 0.2s ease;
-    }
-
-    .modal-overlay.hidden {
-        display: none;
-    }
-
-    .modal-content {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        width: 90%;
-        max-width: 512px;
-        max-height: 90vh;
-        overflow-y: auto;
-        animation: slideUp 0.2s ease;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    @keyframes slideUp {
-        from {
-            transform: translateY(20px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
+    .modal-overlay.hidden { display: none; }
+    .modal-content { background: white; border-radius: 12px; padding: 24px; width: 90%; max-width: 512px; max-height: 90vh; overflow-y: auto; animation: slideUp 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 </style>
 {% endblock %}
