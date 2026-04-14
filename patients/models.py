@@ -86,8 +86,22 @@ class Visit(models.Model):
 
     @property
     def has_files(self):
-        return self.files.exists()
+        # Optimization: use prefetch cache if available
+        if hasattr(self, '_prefetched_objects_cache') and 'files' in self._prefetched_objects_cache:
+            return any(f.file for f in self.files.all())
+        return self.files.exclude(file='').exclude(file__isnull=True).exists()
 
+    @property
+    def has_links(self):
+        # Optimization: use prefetch cache if available
+        if hasattr(self, '_prefetched_objects_cache') and 'files' in self._prefetched_objects_cache:
+            return any(f.link_url for f in self.files.all())
+        return self.files.filter(link_url__isnull=False).exclude(link_url='').exists()
+
+
+    @property
+    def has_links(self):
+        return self.files.filter(link_url__isnull=False).exclude(link_url='').exists()
     @property
     def diagnosis_summary(self):
         if self.diagnosis:

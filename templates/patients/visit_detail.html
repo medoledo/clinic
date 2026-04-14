@@ -4,10 +4,47 @@
 {% block page_title %}Visit Detail{% endblock %}
 
 {% block top_actions %}
-<a href="{% url 'patient_detail' visit.patient.pk %}" class="btn btn-secondary">← Patient</a>
-<a href="{% url 'visit_print' visit.pk %}" target="_blank" class="btn btn-secondary">Print</a>
-<a href="{% url 'edit_visit' visit.pk %}" class="btn btn-primary">Edit Visit</a>
-<button onclick="openDeleteVisitModal({{ visit.pk }})" class="btn btn-danger">Delete Visit</button>
+<a href="{% url 'patient_detail' visit.patient.pk %}" class="btn btn-secondary">
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+    Patient
+</a>
+
+<div class="relative inline-block text-left" id="visit-actions-menu">
+    <button onclick="toggleVisitMenu()" title="More actions"
+        class="flex items-center justify-center w-9 h-9 rounded-lg border border-border bg-white text-muted hover:text-textmain hover:border-slate-400 transition-all shadow-sm">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <circle cx="10" cy="4"  r="1.5"/>
+            <circle cx="10" cy="10" r="1.5"/>
+            <circle cx="10" cy="16" r="1.5"/>
+        </svg>
+    </button>
+    <div id="visit-actions-dropdown"
+        class="hidden absolute right-0 top-full mt-1.5 w-44 bg-white border border-border rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+        <a href="{% url 'visit_print' visit.pk %}" target="_blank"
+            class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-textmain hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Print Visit
+        </a>
+        <div class="border-t border-border mx-3"></div>
+        <a href="{% url 'edit_visit' visit.pk %}"
+            class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-textmain hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Edit Visit
+        </a>
+        <div class="border-t border-border mx-3"></div>
+        <button onclick="openDeleteVisitModal({{ visit.pk }}); toggleVisitMenu()"
+            class="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-danger hover:bg-red-50 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Delete Visit
+        </button>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -218,6 +255,17 @@
 
 <script src="{% static 'js/api.js' %}"></script>
 <script>
+
+    function toggleVisitMenu() {
+        document.getElementById('visit-actions-dropdown').classList.toggle('hidden');
+    }
+    document.addEventListener('click', function(e) {
+        var menu = document.getElementById('visit-actions-menu');
+        if (menu && !menu.contains(e.target)) {
+            document.getElementById('visit-actions-dropdown').classList.add('hidden');
+        }
+    });
+
     let currentDeleteFileId = null;
     let currentDeleteVisitId = null;
 

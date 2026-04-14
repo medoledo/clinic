@@ -139,8 +139,8 @@ def patient_detail(request, pk):
     patient = get_object_or_404(Patient, pk=pk, doctor=request.user)
     visits_qs = (
         Visit.objects.filter(patient=patient)
-        .only('id', 'visit_date', 'chief_complaint', 'diagnosis', 'created_at')
-        .annotate(file_count=Count('files'))
+        .only('id', 'visit_date', 'chief_complaint', 'diagnosis', 'created_at', 'next_checkup_date')
+        .prefetch_related('files')
         .order_by('-visit_date')
     )
     paginator = Paginator(visits_qs, 10)
