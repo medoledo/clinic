@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}{{ patient.name }} &#8212; MediTrack{% endblock %}
 {% block page_title %}Patient Detail{% endblock %}
 
@@ -314,6 +315,8 @@
                 document.getElementById('edit-patient-form-container').innerHTML = html;
                 initModalFlatpickr('edit-patient-form-container');
                 openModal('edit-patient-modal');
+                // Initialize patient voice recording
+                initPatientVoiceRecording();
             });
     }
     function submitEditPatient(e) {
@@ -349,7 +352,17 @@
                 else { showMessage(data.message || 'Failed to delete patient.', 'error'); }
             }).catch(function (err) { hideSpinner('delete-submit-btn', 'delete-submit-text', 'delete-submit-spinner', 'Delete'); showMessage(err.message, 'error'); });
     }
+    
+    // Initialize patient voice recording after form is loaded
+        // Initialize patient voice recording after form is loaded
+    function initPatientVoiceRecording() {
+        if (typeof window.initPatientVoice === 'function') {
+            window.initPatientVoice();
+        }
+    }
 </script>
+
+<script src="{% static 'js/patient_voice.js' %}"></script>
 
 <div id="edit-patient-modal" class="modal-overlay hidden">
     <div class="modal-content max-w-lg">

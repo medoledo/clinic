@@ -915,3 +915,128 @@ def transcribe_and_parse(request):
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.unlink(tmp_path)
+
+
+# ─────────────────────────── Transcribe Patient Info ────────────────────────────
+
+PATIENT_PARSE_SYSTEM_PROMPT = """
+You are a medical transcript parser for an Egyptian doctor's clinic system.
+You will receive an Arabic/mixed Arabic-English transcript of a doctor dictating patient registration information.
+The doctor uses specific Arabic trigger words to indicate which field he is filling.
+
+Parse the transcript and extract content for these fields:
+- name: triggered by (اسم، الاسم، اسم المريض، اسمه، اسمه المريض، اسمها، اسمها المريض)
+- phone: triggered by (تليفون، هاتف، موبايل، رقم التليفون، رقم الهاتف، رقم الموبايل). Extract only the phone number.
+- date_of_birth: triggered by (تاريخ الميلاد، يوم الميلاد، تاريخBirthday، Birthday). Format: YYYY-MM-DD.
+- notes: triggered by (ملاحظات، notes، ملاحظات عامة، notes)
+
+Rules:
+- Extract ONLY what the doctor said for each field, nothing else
+- If a field was not mentioned, return empty string "" for it
+- Keep names exactly as spoken (in the same language)
+- For phone numbers, extract only the digits. Egyptian numbers typically start with 01 followed by 0, 1, or 2.
+- For date of birth, if you hear "born in year X" or "عمره X سنة", try to calculate birth year. Format: YYYY-MM-DD. If only year is known, use January 1.
+- Return ONLY a valid JSON object with no extra text, no markdown, no explanation
+
+Return format:
+{
+  "name": "...",
+  "phone": "...",
+  "date_of_birth": "...",
+  "notes": "..."
+}
+"""
+
+
+@doctor_required
+@require_POST
+def transcribe_patient_info(request):
+    audio_file = request.FILES.get('audio')
+    if not audio_file:
+        return JsonResponse({'error': 'No audio file received'}, status=400)
+
+    suffix = '.webm'
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            for chunk in audio_file.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+
+        # Step 1: Transcribe with Groq
+        if not django_settings.GROQ_API_KEY:
+            return JsonResponse({'error': 'GROQ API Key is missing. Please add GROQ_API_KEY to your .env file.'}, status=500)
+        groq_client = _Groq(api_key=django_settings.GROQ_API_KEY)
+        try:
+            with open(tmp_path, 'rb') as f:
+                transcription = groq_client.audio.transcriptions.create(
+                    file=(os.path.basename(tmp_path), f),
+                    model='whisper-large-v3',
+                    prompt=MEDICAL_PROMPT,
+                    response_format='text',
+                    timeout=30
+                )
+        except Exception as e:
+            return JsonResponse({'error': f'Transcription failed: {str(e)}'}, status=500)
+        raw_transcript = transcription.strip()
+        if not raw_transcript:
+            return JsonResponse({'error': 'Empty transcript'}, status=400)
+
+        # Apply personal learned corrections before parsing
+        raw_transcript = apply_personal_corrections(raw_transcript, request.user)
+
+        # Step 2: Parse with Groq Llama
+        parsed_fields = None
+        fallback_used = False
+        
+        try:
+            completion = groq_client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[
+                    {"role": "system", "content": f"{PATIENT_PARSE_SYSTEM_PROMPT}\n\nIMPORTANT: Output ONLY a valid JSON object."},
+                    {"role": "user", "content": f"Parse this patient registration transcript into fields:\n\n{raw_transcript}"}
+                ],
+                temperature=0.0,
+                response_format={"type": "json_object"}
+            )
+            response_text = completion.choices[0].message.content.strip()
+            response_text = response_text.replace('```json', '').replace('```', '').strip()
+            parsed_fields = json.loads(response_text)
+            
+        except Exception as groq_err:
+            # Fall back to simple regex parsing
+            parsed_fields = {
+                'name': '',
+                'phone': '',
+                'date_of_birth': '',
+                'notes': ''
+            }
+            # Simple keyword-based extraction
+            import re as regex_re
+            # Extract phone - Egyptian numbers
+            phone_match = regex_re.search(r'01[012]\d{8}', raw_transcript)
+            if phone_match:
+                parsed_fields['phone'] = phone_match.group()
+            # Extract notes
+            notes_kw = ['ملاحظات', 'notes', 'ملاحظات عامة']
+            for kw in notes_kw:
+                idx = raw_transcript.lower().find(kw.lower())
+                if idx != -1:
+                    parsed_fields['notes'] = raw_transcript[idx + len(kw):].strip()
+                    break
+            fallback_used = True
+
+        return JsonResponse({
+            'success': True,
+            'transcript': raw_transcript,
+            'fields': parsed_fields,
+            'fallback_used': fallback_used
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Failed to parse fields from transcript'}, status=500)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)

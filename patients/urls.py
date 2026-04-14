@@ -20,6 +20,7 @@ urlpatterns = [
     path('pending-visits/', views.pending_visits, name='pending_visits'),
     path('sync-offline-visit/', views.sync_offline_visit, name='sync_offline_visit'),
     path('transcribe-visit/', views.transcribe_and_parse, name='transcribe_visit'),
+    path('transcribe-patient/', views.transcribe_patient_info, name='transcribe_patient'),
     path('check-suggestions/', views.check_suggestions, name='check_suggestions'),
     path('save-correction/', views.save_correction, name='save_correction'),
 ]

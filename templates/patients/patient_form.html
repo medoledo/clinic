@@ -1,3 +1,84 @@
+{% load static %}
+
+<!-- Voice Recording UI for Patient Form -->
+<div id="patient-voice-not-supported"
+    class="hidden mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm font-medium">
+    Voice transcription is not supported in this browser. Please use Chrome or Edge. The form still works normally.
+</div>
+
+<style>
+    .patient-recorder {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        background: white;
+        border: 2px dashed #94a3b8;
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+
+    .btn-patient-record {
+        padding: 12px 28px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+        min-width: 200px;
+        text-align: center;
+    }
+
+    .btn-patient-record.recording {
+        background: #dc2626;
+        animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.8; }
+    }
+
+    .patient-voice-status { font-size: 14px; font-weight: 600; }
+    .patient-voice-status--recording { color: #dc2626; }
+    .patient-voice-status--loading { color: #d97706; }
+    .patient-voice-status--success { color: #16a34a; }
+    .patient-voice-status--error { color: #dc2626; }
+    .patient-voice-status--warning { color: #d97706; }
+
+    .patient-recording-guide {
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        background: #f1f5f9;
+        border-radius: 6px;
+        color: #64748b;
+        font-size: 14px;
+        border-left: 4px solid #3b82f6;
+    }
+</style>
+
+<div class="card p-5 border-l-4 border-l-blue-500 shadow-sm col-span-1 md:col-span-2 bg-blue-50/30 mb-6">
+    <div class="patient-recorder">
+        <button type="button" id="patient-record-btn" class="btn-patient-record">
+            🎤 Record Patient Info
+        </button>
+        <span id="patient-voice-status" class="patient-voice-status">Ready to record</span>
+    </div>
+
+    <div class="patient-recording-guide">
+        <strong>Voice Recording Tip:</strong><br/>
+        Say: <strong>"name"</strong> for patient name, <strong>"phone"</strong> for phone number,
+        <strong>"birthday"</strong> or <strong>"date of birth"</strong> for DOB, and <strong>"notes"</strong> for general notes.
+        <br/><br/>
+        <strong>نصيحة للتسجيل:</strong><br/>
+        قل: <strong>"اسم"</strong> لاسم المريض، <strong>"تليفون"</strong> لرقم الهاتف،
+        <strong>"تاريخ الميلاد"</strong> للتاريخ، و<strong>"ملاحظات"</strong> للملاحظات العامة.
+    </div>
+</div>
+
 {% if patient %}
 <form method="POST" id="edit-patient-form" onsubmit="submitEditPatient(event)">
     {% else %}
@@ -10,23 +91,23 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div class="md:col-span-2">
                 <label class="form-label">Full Name *</label>
-                <input name="name" type="text" required class="form-input" value="{{ patient.name|default:'' }}"
+                <input name="name" type="text" id="name" required class="form-input" value="{{ patient.name|default:'' }}"
                     placeholder="Patient's full name" />
             </div>
             <div>
                 <label class="form-label">Phone Number</label>
-                <input name="phone" type="tel" class="form-input" value="{{ patient.phone|default:'' }}"
+                <input name="phone" type="tel" id="phone" class="form-input" value="{{ patient.phone|default:'' }}"
                     placeholder="e.g. 01012345678" />
             </div>
             <div>
                 <label class="form-label">Date of Birth</label>
-                <input name="date_of_birth" type="date" class="form-input" id="dob-input"
+                <input name="date_of_birth" type="date" id="date_of_birth" class="form-input" 
                     value="{{ patient.date_of_birth|date:'Y-m-d'|default:'' }}" />
                 <p id="age-display" class="text-xs text-primary font-semibold mt-1.5" style="display:none"></p>
             </div>
             <div>
                 <label class="form-label">Gender *</label>
-                <select name="gender" class="form-input">
+                <select name="gender" id="gender" class="form-input">
                     <option value="male" {% if not patient or patient.gender == 'male' %}selected{% endif %}>Male</option>
                     <option value="female" {% if patient and patient.gender == 'female' %}selected{% endif %}>Female
                     </option>
@@ -34,7 +115,7 @@
             </div>
             <div class="md:col-span-2">
                 <label class="form-label">General Notes</label>
-                <textarea name="notes" class="form-textarea !min-h-[72px]"
+                <textarea name="notes" id="notes" class="form-textarea !min-h-[72px]"
                     placeholder="Any general notes about this patient">{{ patient.notes|default:'' }}</textarea>
             </div>
         </div>
@@ -54,9 +135,10 @@
                 class="btn btn-secondary">Cancel</button>
         </div>
     </form>
+
     <script>
         (function () {
-            var dobInput = document.getElementById('dob-input');
+            var dobInput = document.getElementById('date_of_birth');
             var ageDisplay = document.getElementById('age-display');
             if (!dobInput || !ageDisplay) return;
 
@@ -102,3 +184,5 @@
             calcAge();
         })();
     </script>
+
+    
