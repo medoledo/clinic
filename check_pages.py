@@ -76,13 +76,6 @@ def check(session, path, expected, method="GET"):
 def get_discovered_ids(adm_s, doc_s):
     d_id = None; p_id = None; v_id = None; f_id = None
     
-    if adm_s:
-        resp = adm_s.get(f"{BASE_URL}/admin-panel/manage-doctors/", timeout=TIMEOUT)
-        matches = re.findall(r'/admin-panel/doctors/(\d+)/', resp.text)
-        for m in matches:
-            if m != "0": 
-                d_id = m
-                break
 
     if doc_s:
         resp = doc_s.get(f"{BASE_URL}/patients/", timeout=TIMEOUT)
@@ -112,7 +105,6 @@ def main():
     print(f"{GREEN}✓ Doctor login OK{RESET}" if doc_ok else f"{RED}✗ Doctor login FAILED{RESET}")
 
     d_id, p_id, v_id, f_id = get_discovered_ids(adm_s if adm_ok else None, doc_s if doc_ok else None)
-    if d_id: print(f"{CYAN}ℹ Found Doctor ID: {d_id}{RESET}")
     if p_id: print(f"{CYAN}ℹ Found Patient ID: {p_id}{RESET}")
     if v_id: print(f"{CYAN}ℹ Found Visit ID: {v_id}{RESET}")
     if f_id: print(f"{CYAN}ℹ Found File ID: {f_id}{RESET}")
@@ -121,10 +113,7 @@ def main():
     PAGES = [
         ("public", "/", [200, 302], "GET"),
         ("public", "/login/", [200], "GET"),
-        ("public", "/register/", [200], "GET"),
         ("admin",  "/admin-panel/", [200], "GET"),
-        ("admin",  "/admin-panel/manage-doctors/", [200], "GET"),
-        ("admin",  "/admin-panel/doctors/add/", [200], "GET"),
         ("doctor", "/dashboard/", [200], "GET"),
         ("doctor", "/patients/", [200], "GET"),
         ("doctor", "/patients/add/", [200], "GET"),
@@ -133,12 +122,6 @@ def main():
         ("doctor", "/search-patients/?q=test", [200], "GET"),
     ]
     
-    if d_id:
-        PAGES += [
-            ("admin", f"/admin-panel/doctors/{d_id}/edit/", [200], "GET"),
-            ("admin", f"/admin-panel/doctors/{d_id}/reset-password/", [200], "GET"),
-            ("admin", f"/admin-panel/doctors/{d_id}/delete/", [200], "GET"),
-        ]
     if p_id:
         PAGES += [
             ("doctor", f"/patients/{p_id}/", [200], "GET"),

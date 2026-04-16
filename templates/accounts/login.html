@@ -4,122 +4,199 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login — MediTrack</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <title>Login — El-Basma Clinic</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@700;900&display=swap" rel="stylesheet" />
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
             font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #14532d 0%, #1a5c2e 45%, #166534 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
 
-        .form-input {
+        /* ── Brand block ── */
+        .brand {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .brand-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 14px;
+            filter: drop-shadow(0 6px 16px rgba(0,0,0,0.35));
+        }
+        .brand-name-ar {
+            font-family: 'Noto Sans Arabic', sans-serif;
+            font-size: 26px;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            line-height: 1.15;
+        }
+        .brand-name-en {
+            font-size: 12px;
+            font-weight: 700;
+            color: #fca5a5;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+
+        /* ── Card ── */
+        .card {
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 36px 32px;
+            width: 100%;
+            max-width: 380px;
+        }
+        .card h2 {
+            font-size: 19px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 22px;
+        }
+
+        /* ── Messages ── */
+        .msg {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+        .msg-error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
+        .msg-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+
+        /* ── Form ── */
+        .field { margin-bottom: 18px; }
+        .field label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 7px;
+        }
+        .field input {
             width: 100%;
             padding: 12px 14px;
-            border: 1.5px solid #E2E8F0;
-            border-radius: 8px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
             font-size: 15px;
-            background: #fff;
-            transition: border .2s;
             font-family: inherit;
+            background: #fff;
+            color: #0f172a;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
-
-        .form-input:focus {
+        .field input:focus {
             outline: none;
-            border-color: #2563EB;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+            border-color: #1a5c2e;
+            box-shadow: 0 0 0 3px rgba(26, 92, 46, 0.12);
         }
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg)
-            }
+        /* ── Submit button ── */
+        .btn-submit {
+            width: 100%;
+            padding: 13px;
+            background: #1a5c2e;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 6px;
+            transition: background 0.2s, transform 0.1s;
         }
+        .btn-submit:hover { background: #166534; }
+        .btn-submit:active { transform: scale(0.98); }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
 
+        /* ── Spinner ── */
+        @keyframes spin { to { transform: rotate(360deg); } }
         .spinner {
             display: inline-block;
             width: 16px;
             height: 16px;
-            border: 2px solid rgba(255, 255, 255, .4);
+            border: 2px solid rgba(255,255,255,0.4);
             border-top-color: #fff;
             border-radius: 50%;
-            animation: spin .7s linear infinite;
+            animation: spin 0.7s linear infinite;
+        }
+        .hidden { display: none !important; }
+
+        /* ── Footer ── */
+        .footer {
+            margin-top: 22px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            text-align: center;
         }
     </style>
 </head>
 
-<body
-    class="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex items-center justify-center p-4">
-
-    <div class="w-full max-w-sm">
-        <!-- Logo -->
-        <div class="text-center mb-8">
-            <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-                <svg class="w-9 h-9 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-            </div>
-            <h1 class="text-3xl font-bold text-white">MediTrack</h1>
-            <p class="text-blue-200 mt-1 text-sm">Doctor Visit Records System</p>
-        </div>
-
-        <!-- Card -->
-        <div class="bg-white rounded-2xl shadow-2xl p-8">
-            <h2 class="text-xl font-bold text-gray-900 mb-6">Sign in to your account</h2>
-
-            {% if messages %}
-            {% for message in messages %}
-            <div class="mb-4 p-3 rounded-lg text-sm font-medium
-        {% if message.tags == 'error' %}bg-red-50 border border-red-200 text-red-700
-        {% else %}bg-blue-50 border border-blue-200 text-blue-700{% endif %}">
-                {{ message }}
-            </div>
-            {% endfor %}
-            {% endif %}
-
-            <form method="POST" id="login-form">
-                {% csrf_token %}
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-700 text-gray-500 uppercase tracking-wider mb-1.5"
-                            for="username">Username</label>
-                        <input id="username" name="username" type="text" required autocomplete="username"
-                            class="form-input" placeholder="Enter your username" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-700 text-gray-500 uppercase tracking-wider mb-1.5"
-                            for="password">Password</label>
-                        <input id="password" name="password" type="password" required autocomplete="current-password"
-                            class="form-input" placeholder="Enter your password" />
-                    </div>
-                    <div class="flex items-center gap-2">
-                        
-                        
-                    </div>
-                    <button type="submit" id="login-btn"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm mt-2">
-                        <span id="btn-text">Sign In</span>
-                        <span id="btn-spinner" class="hidden spinner"></span>
-                    </button>
-                </div>
-            </form>
-<p class="text-center text-sm text-muted mt-6">
-    Are you a new doctor? <a href="{% url 'register' %}" class="font-bold text-primary hover:underline">Register Here</a>
-</p>
-
-        </div>
-
-        <p class="text-blue-200 text-center text-xs mt-6">© 2026 MediTrack · Secure Medical Records</p>
+<body>
+    <!-- Brand -->
+    <div class="brand">
+        <!-- BC Logo SVG -->
+        <svg class="brand-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="200" rx="14" fill="#1a5c2e"/>
+            <rect x="0" y="0" width="200" height="24" fill="#c0392b"/>
+            <rect x="0" y="176" width="200" height="24" fill="#c0392b"/>
+            <text x="6" y="158" font-family="Impact,'Arial Black',sans-serif" font-size="138" font-weight="900" fill="white">B</text>
+            <text x="96" y="158" font-family="Impact,'Arial Black',sans-serif" font-size="138" font-weight="900" fill="white">C</text>
+        </svg>
+        <div class="brand-name-ar">&#1575;&#1604;&#1576;&#1587;&#1605;&#1577; &#1603;&#1604;&#1610;&#1606;&#1603;</div>
+        <div class="brand-name-en">EL-BASMA CLINIC</div>
     </div>
+
+    <!-- Login Card -->
+    <div class="card">
+        <h2>Sign in to your account</h2>
+
+        {% if messages %}{% for message in messages %}
+        <div class="msg {% if message.tags == 'error' %}msg-error{% else %}msg-success{% endif %}">{{ message }}</div>
+        {% endfor %}{% endif %}
+
+        <form method="POST" id="login-form">
+            {% csrf_token %}
+            <div class="field">
+                <label for="username">Username</label>
+                <input id="username" name="username" type="text" required autocomplete="username" placeholder="Enter your username" />
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Enter your password" />
+            </div>
+            <button type="submit" id="login-btn" class="btn-submit">
+                <span id="btn-text">Sign In</span>
+                <span id="btn-spinner" class="spinner hidden"></span>
+            </button>
+        </form>
+    </div>
+
+    <p class="footer">&copy; 2026 El-Basma Clinic &middot; Dr. Mohammed Mahmoud Basyony</p>
 
     <script>
         document.getElementById('login-form').addEventListener('submit', function () {
-            const btn = document.getElementById('login-btn');
+            var btn = document.getElementById('login-btn');
             btn.disabled = true;
             document.getElementById('btn-text').textContent = 'Signing in...';
             document.getElementById('btn-spinner').classList.remove('hidden');
         });
-        // Auto-focus username
         document.getElementById('username').focus();
     </script>
 </body>

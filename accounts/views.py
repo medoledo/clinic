@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
@@ -8,9 +8,9 @@ from django.db.models import Count, Max, Min, Q
 from django.utils import timezone
 from datetime import timedelta
 
-from .models import UserProfile, DoctorProfile, AdminProfile
-from .decorators import admin_required, post_required
-from patients.models import Patient, Visit, VisitFile
+from .models import UserProfile, DoctorProfile
+from .decorators import admin_required
+from patients.models import Patient, Visit
 
 
 # ─────────────────────────── Auth ────────────────────────────────────────────
@@ -30,7 +30,6 @@ def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
-        
 
         if not username or not password:
             messages.error(request, 'Username and password are required.')
@@ -39,7 +38,7 @@ def login_view(request):
         try:
             temp_user = User.objects.get(username=username)
             if not temp_user.is_active and temp_user.check_password(password):
-                messages.error(request, "Your account is currently inactive. Please wait for Admin approval, or contact the administration.")
+                messages.error(request, "Your account is currently inactive. Contact the administration.")
                 return render(request, 'accounts/login.html')
         except User.DoesNotExist:
             pass
@@ -47,9 +46,6 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-
-            
-
             try:
                 role = user.profile.role
                 if role == 'admin':
@@ -58,7 +54,6 @@ def login_view(request):
                     return redirect('dashboard')
             except UserProfile.DoesNotExist:
                 pass
-
             messages.error(request, 'No role assigned to your account. Contact admin.')
             logout(request)
         else:
@@ -84,33 +79,10 @@ def admin_dashboard(request):
     last_month_end = this_month_start - timedelta(days=1)
     last_month_start = last_month_end.replace(day=1)
 
-    doctor_filter = request.GET.get('doctor_filter', '').strip()
-
-    # Base querysets — filtered by selected doctor if provided
-    doctors_qs = User.objects.filter(
-        profile__role='doctor'
-    ).select_related('profile', 'doctor_profile')
-
     patients_qs = Patient.objects.all()
     visits_qs = Visit.objects.all()
 
-    doctor_filter_id = None
-    if doctor_filter:
-        # Validate it's a real doctor pk to avoid injection
-        try:
-            doctor_filter_id = int(doctor_filter)
-            doctors_qs = doctors_qs.filter(pk=doctor_filter_id)
-            patients_qs = patients_qs.filter(doctor_id=doctor_filter_id)
-            visits_qs = visits_qs.filter(doctor_id=doctor_filter_id)
-        except (ValueError, TypeError):
-            doctor_filter = ''
-            doctor_filter_id = None
-
-    # ── Aggregate stats (single queries) ─────────────────────────────────────
-    total_doctors = doctors_qs.count()
-    active_doctors = doctors_qs.filter(is_active=True).count()
-    inactive_doctors = total_doctors - active_doctors
-
+    # ── Aggregate stats ───────────────────────────────────────────────────────
     patient_agg = patients_qs.aggregate(
         total=Count('id'),
         male=Count('id', filter=Q(gender='male')),
@@ -122,17 +94,14 @@ def admin_dashboard(request):
     patients_with_visits = patients_qs.annotate(vc=Count('visits')).filter(vc__gt=0).count()
     patients_without_visits = total_patients - patients_with_visits
 
-    # Visit stats
     total_visits = visits_qs.count()
     today_visits = visits_qs.filter(visit_date__date=today).count()
     this_week_visits = visits_qs.filter(visit_date__date__gte=this_week_start).count()
     this_month_visits = visits_qs.filter(visit_date__date__gte=this_month_start).count()
-
-    # Last month visits (must re-apply doctor filter if set)
-    lm_filter = Q(visit_date__date__gte=last_month_start, visit_date__date__lte=last_month_end)
-    if doctor_filter:
-        lm_filter &= Q(doctor_id=int(doctor_filter))
-    last_month_visits = Visit.objects.filter(lm_filter).count()
+    last_month_visits = Visit.objects.filter(
+        visit_date__date__gte=last_month_start,
+        visit_date__date__lte=last_month_end,
+    ).count()
 
     if last_month_visits > 0:
         visit_growth = round(((this_month_visits - last_month_visits) / last_month_visits) * 100, 1)
@@ -140,85 +109,21 @@ def admin_dashboard(request):
         visit_growth = 0
     abs_visit_growth = abs(visit_growth)
 
-    # Average visits per day — use Min aggregation instead of order_by().first()
-    oldest_date_row = visits_qs.aggregate(oldest=Min('visit_date'))
-    oldest_date = oldest_date_row['oldest']
+    oldest_row = visits_qs.aggregate(oldest=Min('visit_date'))
+    oldest_date = oldest_row['oldest']
     if oldest_date and total_visits > 0:
         span_days = max(1, (today - oldest_date.date()).days + 1)
         avg_visits_per_day = round(total_visits / span_days, 1)
     else:
         avg_visits_per_day = 0
 
-    avg_visits_per_doctor = round(total_visits / max(1, total_doctors), 1)
-    avg_visits_per_patient = round(total_visits / max(1, total_patients), 1)
-    avg_patients_per_doctor = round(total_patients / max(1, total_doctors), 1)
-
-    visits_with_files = visits_qs.annotate(fc=Count('files')).filter(fc__gt=0).count()
-    visits_without_files = total_visits - visits_with_files
-
-    # Vitals coverage
     visits_with_temp = visits_qs.filter(temperature__isnull=False).count()
     visits_with_bp = visits_qs.exclude(blood_pressure='').count()
     visits_with_pulse = visits_qs.filter(pulse__isnull=False).count()
     visits_with_weight = visits_qs.filter(weight__isnull=False).count()
 
-    # ── Doctors leaderboard — ONE query with annotations ─────────────────────
-    # Annotate all stats in a single DB round-trip instead of a per-doctor loop
-    from django.db.models import Max as _Max
-    doctors_annotated = doctors_qs.annotate(
-        patient_count=Count('patients', distinct=True),
-        visit_count=Count('visits', distinct=True),
-        today_count=Count(
-            'visits',
-            filter=Q(visits__visit_date__date=today),
-            distinct=True,
-        ),
-        month_count=Count(
-            'visits',
-            filter=Q(visits__visit_date__date__gte=this_month_start),
-            distinct=True,
-        ),
-        last_visit_date=_Max('visits__visit_date'),
-    ).order_by('-visit_count')
-
-    doctors_data = []
-    for doc in doctors_annotated:
-        try:
-            full_name = doc.doctor_profile.full_name
-        except DoctorProfile.DoesNotExist:
-            full_name = doc.username
-
-        doctors_data.append({
-            'user': doc,
-            'profile': doc.profile,
-            'full_name': full_name,
-            'patient_count': doc.patient_count,
-            'visit_count': doc.visit_count,
-            'today_visits': doc.today_count,
-            'month_visits': doc.month_count,
-            'last_active': doc.last_visit_date,
-        })
-
-    # ── Most-visited patients — annotated, no extra per-patient queries ───────
-    most_visited = (
-        patients_qs
-        .annotate(vc=Count('visits'), last_visit_date=Max('visits__visit_date'))
-        .filter(vc__gt=0)
-        .order_by('-vc')[:10]
-    )
-    most_visited_data = []
-    for p in most_visited:
-        most_visited_data.append({
-            'patient': p,
-            'visit_count': p.vc,
-            'last_visit': p.last_visit_date,
-            'doctor': '—',
-        })
-
-    no_visit_patients = (
-        patients_qs.annotate(vc=Count('visits')).filter(vc=0)
-        .select_related('doctor')[:10]
-    )
+    visits_with_files = visits_qs.annotate(fc=Count('files')).filter(fc__gt=0).count()
+    visits_without_files = total_visits - visits_with_files
 
     recent_visits = (
         visits_qs
@@ -227,7 +132,7 @@ def admin_dashboard(request):
         .order_by('-visit_date')[:15]
     )
 
-    # ── Daily breakdown for last 7 days — single annotated query ──────────────
+    # ── Daily breakdown ───────────────────────────────────────────────────────
     from django.db.models.functions import TruncDate
     days_range = [today - timedelta(days=6 - i) for i in range(7)]
     daily_counts = {
@@ -243,30 +148,7 @@ def admin_dashboard(request):
         for d in days_range
     ]
 
-    # Weekday analysis — single annotated query
-    from django.db.models.functions import ExtractWeekDay
-    weekday_counts = {
-        row['wd']: row['cnt']
-        for row in visits_qs
-            .annotate(wd=ExtractWeekDay('visit_date'))
-            .values('wd')
-            .annotate(cnt=Count('id'))
-    }
-    day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    weekday_data = []
-    for i, name in enumerate(day_names):
-        django_day = i + 2 if i < 6 else 1
-        weekday_data.append({'name': name, 'visits': weekday_counts.get(django_day, 0)})
-    weekday_data.sort(key=lambda x: x['visits'], reverse=True)
-    busiest_day = weekday_data[0]['name'] if weekday_data else '—'
-
     context = {
-        'doctor_filter': doctor_filter,
-        'doctor_filter_id': doctor_filter_id,
-        'all_doctors': doctors_qs,
-        'total_doctors': total_doctors,
-        'active_doctors': active_doctors,
-        'inactive_doctors': inactive_doctors,
         'total_patients': total_patients,
         'male_patients': male_patients,
         'female_patients': female_patients,
@@ -280,258 +162,13 @@ def admin_dashboard(request):
         'visit_growth': visit_growth,
         'abs_visit_growth': abs_visit_growth,
         'avg_visits_per_day': avg_visits_per_day,
-        'avg_visits_per_doctor': avg_visits_per_doctor,
-        'avg_visits_per_patient': avg_visits_per_patient,
-        'avg_patients_per_doctor': avg_patients_per_doctor,
-        'visits_with_files': visits_with_files,
-        'visits_without_files': visits_without_files,
         'visits_with_temp': visits_with_temp,
         'visits_with_bp': visits_with_bp,
         'visits_with_pulse': visits_with_pulse,
         'visits_with_weight': visits_with_weight,
-        'doctors_data': doctors_data,
-        'most_visited_data': most_visited_data,
-        'no_visit_patients': no_visit_patients,
+        'visits_with_files': visits_with_files,
+        'visits_without_files': visits_without_files,
         'recent_visits': recent_visits,
         'daily_breakdown': daily_breakdown,
-        'weekday_data': weekday_data,
-        'busiest_day': busiest_day,
     }
     return render(request, 'accounts/admin_dashboard.html', context)
-
-
-# ─────────────────────────── Admin — Manage Doctors ──────────────────────────
-
-@admin_required
-def manage_doctors(request):
-    today = timezone.now().date()
-    this_month_start = today.replace(day=1)
-
-    # Single DB query: all doctors with all counts annotated — no per-doctor loop
-    doctors_qs = (
-        User.objects
-        .filter(profile__role='doctor')
-        .select_related('profile', 'doctor_profile')
-        .annotate(
-            patient_count=Count('patients', distinct=True),
-            visit_count=Count('visits', distinct=True),
-            today_count=Count(
-                'visits',
-                filter=Q(visits__visit_date__date=today),
-                distinct=True,
-            ),
-            month_count=Count(
-                'visits',
-                filter=Q(visits__visit_date__date__gte=this_month_start),
-                distinct=True,
-            ),
-            last_visit_date=Max('visits__visit_date'),
-        )
-        .order_by('-visit_count')
-    )
-
-    doctors_data = []
-    for doc in doctors_qs:
-        try:
-            full_name = doc.doctor_profile.full_name
-            spec = doc.doctor_profile.specialization
-            phone = doc.doctor_profile.phone
-        except DoctorProfile.DoesNotExist:
-            full_name = doc.username
-            spec = ''
-            phone = ''
-
-        doctors_data.append({
-            'user': doc,
-            'full_name': full_name,
-            'specialization': spec,
-            'phone': phone,
-            'patient_count': doc.patient_count,
-            'visit_count': doc.visit_count,
-            'today_visits': doc.today_count,
-            'month_visits': doc.month_count,
-            'last_active': doc.last_visit_date,
-        })
-
-    context = {
-        'doctors_data': doctors_data,
-        'total_doctors': len(doctors_data),
-        'active_doctors': sum(1 for d in doctors_data if d['user'].is_active),
-        'total_patients': Patient.objects.count(),
-        'total_visits': Visit.objects.count(),
-    }
-    return render(request, 'accounts/manage_doctors.html', context)
-
-
-# ─────────────────────────── Admin — Doctor CRUD ──────────────────────────────
-
-@admin_required
-def add_doctor(request):
-    if request.method == 'POST':
-        username = request.POST.get('username', '').strip()[:150]
-        password = request.POST.get('password', '').strip()
-        full_name = request.POST.get('full_name', '').strip()[:200]
-        specialization = request.POST.get('specialization', '').strip()[:200]
-        phone = request.POST.get('phone', '').strip()[:20]
-        is_active = request.POST.get('is_active') == 'on'
-
-        if not username:
-            return JsonResponse({'success': False, 'message': 'Username is required.'})
-        if not password or len(password) < 8:
-            return JsonResponse({'success': False, 'message': 'Password must be at least 8 characters.'})
-        if not full_name:
-            return JsonResponse({'success': False, 'message': 'Full name is required.'})
-        if User.objects.filter(username=username).exists():
-            return JsonResponse({'success': False, 'message': 'Username already taken.'})
-
-        user = User.objects.create_user(
-            username=username,
-            password=password,
-            is_active=is_active,
-        )
-        UserProfile.objects.create(user=user, role='doctor')
-        DoctorProfile.objects.create(
-            user=user,
-            full_name=full_name,
-            specialization=specialization,
-            phone=phone,
-        )
-        return JsonResponse({'success': True, 'message': f'Doctor "{full_name}" added successfully.'})
-
-    return render(request, 'accounts/doctor_form.html', {'action': 'Add'})
-
-
-@admin_required
-def edit_doctor(request, pk):
-    doctor_user = get_object_or_404(User, pk=pk, profile__role='doctor')
-    try:
-        profile = doctor_user.doctor_profile
-    except DoctorProfile.DoesNotExist:
-        profile = None
-
-    if request.method == 'POST':
-        full_name = request.POST.get('full_name', '').strip()[:200]
-        username = request.POST.get('username', '').strip()[:150]
-        specialization = request.POST.get('specialization', '').strip()[:200]
-        phone = request.POST.get('phone', '').strip()[:20]
-        is_active = request.POST.get('is_active') == 'on'
-
-        if not full_name:
-            return JsonResponse({'success': False, 'message': 'Full name is required.'})
-
-        if username and username != doctor_user.username:
-            if User.objects.filter(username=username).exclude(pk=pk).exists():
-                return JsonResponse({'success': False, 'message': 'Username already taken.'})
-            doctor_user.username = username
-
-        if profile:
-            profile.full_name = full_name
-            profile.specialization = specialization
-            profile.phone = phone
-            profile.save()
-
-        doctor_user.is_active = is_active
-        doctor_user.save()
-        return JsonResponse({'success': True, 'message': f'Doctor "{full_name}" updated successfully.'})
-
-    context = {
-        'action': 'Edit',
-        'doctor_user': doctor_user,
-        'profile': profile,
-    }
-    return render(request, 'accounts/doctor_form.html', context)
-
-
-@admin_required
-def reset_doctor_password(request, pk):
-    doctor_user = get_object_or_404(User, pk=pk, profile__role='doctor')
-    try:
-        full_name = doctor_user.doctor_profile.full_name
-    except DoctorProfile.DoesNotExist:
-        full_name = doctor_user.username
-
-    if request.method == 'POST':
-        new_password = request.POST.get('new_password', '').strip()
-        if not new_password or len(new_password) < 8:
-            return JsonResponse({'success': False, 'message': 'Password must be at least 8 characters.'})
-        doctor_user.set_password(new_password)
-        doctor_user.save()
-        return JsonResponse({'success': True, 'message': f'Password for "{full_name}" reset successfully.'})
-
-    return render(request, 'accounts/reset_password.html', {'doctor_user': doctor_user})
-
-
-@admin_required
-@post_required
-def toggle_doctor_status(request, pk):
-    """Toggle doctor active status — POST only to prevent CSRF via GET."""
-    doctor_user = get_object_or_404(User, pk=pk, profile__role='doctor')
-    doctor_user.is_active = not doctor_user.is_active
-    doctor_user.save(update_fields=['is_active'])
-    status = 'activated' if doctor_user.is_active else 'deactivated'
-    try:
-        full_name = doctor_user.doctor_profile.full_name
-    except DoctorProfile.DoesNotExist:
-        full_name = doctor_user.username
-    return JsonResponse({'success': True, 'message': f'Doctor "{full_name}" {status}.'})
-
-
-@admin_required
-def delete_doctor(request, pk):
-    doctor_user = get_object_or_404(User, pk=pk, profile__role='doctor')
-    patient_count = Patient.objects.filter(doctor=doctor_user).count()
-
-    if patient_count > 0:
-        return JsonResponse({
-            'success': False,
-            'message': f'Cannot delete \u2014 this doctor has {patient_count} patient(s). Deactivate them instead.',
-        })
-
-    if request.method == 'POST':
-        try:
-            full_name = doctor_user.doctor_profile.full_name
-        except DoctorProfile.DoesNotExist:
-            full_name = doctor_user.username
-        doctor_user.delete()
-        return JsonResponse({'success': True, 'message': f'Doctor "{full_name}" deleted successfully.'})
-
-    return render(request, 'accounts/confirm_delete.html', {'doctor_user': doctor_user})
-
-
-
-def register(request):
-    """Doctor registration page. Inactive by default until admin approves."""
-    if request.user.is_authenticated:
-        return redirect('login')
-
-    if request.method == 'POST':
-        username = request.POST.get('username', '').strip()[:150]
-        password = request.POST.get('password', '').strip()
-        full_name = request.POST.get('full_name', '').strip()[:200]
-        specialization = request.POST.get('specialization', '').strip()[:200]
-        phone = request.POST.get('phone', '').strip()[:20]
-
-        if not username or not password or not full_name:
-            messages.error(request, 'Please fill out all required fields.')
-            return render(request, 'accounts/register.html')
-            
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username is already taken.')
-            return render(request, 'accounts/register.html')
-
-        user = User.objects.create_user(
-            username=username,
-            password=password,
-            is_active=False,  # Needs admin approval
-        )
-        UserProfile.objects.create(user=user, role='doctor')
-        DoctorProfile.objects.create(
-            user=user,
-            full_name=full_name,
-            specialization=specialization,
-            phone=phone,
-        )
-        messages.success(request, 'Registration successful! Your account is pending admin approval.')
-        return redirect('login')
-
-    return render(request, 'accounts/register.html')

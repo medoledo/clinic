@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 
 <head>
     <meta charset="UTF-8" />
@@ -7,134 +7,162 @@
     <title>Visit Summary &mdash; {{ visit.patient.name }} &mdash; {{ visit.visit_date|date:"Y-m-d" }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;600;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #1e40af;
-            --primary-light: #eff6ff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --bg-offset: #f8fafc;
+            --green:       #1a5c2e;
+            --green-light: #eaf3ed;
+            --red:         #c0392b;
+            --text-main:   #0f172a;
+            --text-muted:  #64748b;
+            --border:      #e2e8f0;
+            --bg-offset:   #f8fafc;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+            font-family: 'Noto Sans Arabic', 'Inter', sans-serif;
             font-size: 13px;
             color: var(--text-main);
             background-color: #f1f5f9;
-            line-height: 1.5;
+            line-height: 1.6;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
 
-        /* ── Page Layout ── */
+        /* ── Page wrapper ── */
         .page-wrapper {
             background: white;
             width: 210mm;
             min-height: 297mm;
             margin: 20px auto;
-            padding: 20mm;
+            padding: 12mm 15mm 15mm;
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
             display: flex;
             flex-direction: column;
             position: relative;
+            overflow: hidden;
         }
 
-        /* ── Header / Letterhead ── */
+        /* ── Watermark ── */
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.055;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .watermark svg { width: 220px; height: 220px; }
+
+        /* All content sits above watermark */
+        .page-content { position: relative; z-index: 1; display: flex; flex-direction: column; flex: 1; }
+
+        /* ── Letterhead ── */
         .letterhead {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid var(--primary);
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            padding-bottom: 10px;
+            margin-bottom: 0;
+            gap: 12px;
+            direction: ltr;
         }
 
-        .clinic-brand h1 {
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--primary);
-            letter-spacing: -0.5px;
-            text-transform: uppercase;
-        }
-
-        .clinic-brand p {
-            font-size: 12px;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        .report-meta {
-            text-align: right;
-        }
-
-        .report-meta h2 {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 4px;
-        }
-
-        /* ── Patient Info Card ── */
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            background: var(--bg-offset);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-
-        .info-item {
+        /* LEFT: logo block */
+        .logo-block {
             display: flex;
-            flex-direction: column;
-            gap: 4px;
+            align-items: center;
+            gap: 10px;
         }
+        .logo-block svg { width: 72px; height: 72px; flex-shrink: 0; }
 
-        .info-label {
-            font-size: 10px;
+        .clinic-name-block { line-height: 1.2; }
+        .clinic-name-ar {
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--green);
+            letter-spacing: 0.5px;
+        }
+        .clinic-name-en {
+            font-size: 13px;
             font-weight: 700;
-            color: var(--text-muted);
+            color: var(--red);
+            letter-spacing: 1.5px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
         }
 
-        .info-value {
-            font-size: 14px;
+        /* RIGHT: doctor info */
+        .doctor-block { text-align: right; line-height: 1.35; direction: rtl; }
+        .doctor-label {
+            font-size: 13px;
             font-weight: 600;
+            color: var(--text-muted);
+        }
+        .doctor-name {
+            font-size: 26px;
+            font-weight: 900;
             color: var(--text-main);
+            letter-spacing: -0.3px;
+        }
+        .doctor-spec {
+            font-size: 11.5px;
+            font-weight: 500;
+            color: #374151;
+            margin-top: 2px;
+        }
+
+        /* ── Green info bar (like the real paper) ── */
+        .info-bar {
+            background: var(--green);
+            border-radius: 6px;
+            padding: 7px 18px;
+            margin: 10px 0 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            direction: rtl;
+        }
+        .info-bar-field {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+        }
+        .info-bar-field:not(:last-child) {
+            border-left: 1px solid rgba(255,255,255,0.35);
+            padding-left: 18px;
+            margin-left: 18px;
+        }
+        .info-bar-label { opacity: 0.85; white-space: nowrap; }
+        .info-bar-value {
+            font-weight: 700;
+            color: #fff;
+            font-size: 13.5px;
         }
 
         /* ── Section Styles ── */
-        .content-section {
-            margin-bottom: 25px;
-        }
+        .content-section { margin-bottom: 18px; }
 
         .section-header {
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 700;
-            color: var(--primary);
+            color: var(--green);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 6px;
-            margin-bottom: 12px;
+            letter-spacing: 0.06em;
+            border-bottom: 1.5px solid var(--border);
+            padding-bottom: 5px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 8px;
+            direction: ltr;
         }
-
         .section-header::after {
             content: "";
             flex-grow: 1;
@@ -143,35 +171,31 @@
         }
 
         .section-body {
-            font-size: 13.5px;
-            line-height: 1.6;
+            font-size: 14px;
+            line-height: 1.65;
             color: var(--text-main);
             white-space: pre-wrap;
         }
 
-        /* ── Vital Signs Grid ── */
+        /* ── Vital Signs ── */
         .vitals-row {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-top: 5px;
+            gap: 12px;
+            margin-top: 4px;
         }
-
         .vital-card {
-            background: white;
+            background: var(--bg-offset);
             border: 1px solid var(--border);
             border-radius: 10px;
-            padding: 12px;
+            padding: 10px;
             text-align: center;
-            transition: border-color 0.2s;
         }
-
         .vital-card .val {
             font-size: 18px;
             font-weight: 700;
-            color: var(--primary);
+            color: var(--green);
         }
-
         .vital-card .unit {
             font-size: 10px;
             color: var(--text-muted);
@@ -180,138 +204,102 @@
             margin-top: 2px;
         }
 
-        /* ── Footer / Signature (Bottom Anchored) ── */
-        .footer-spacer {
-            flex-grow: 1;
+        /* ── Treatment box ── */
+        .treatment-box {
+            color: var(--green);
+            font-size: 14.5px;
+            background: var(--green-light);
+            padding: 14px 18px;
+            border-radius: 8px;
+            border-right: 4px solid var(--green);
         }
 
+        /* ── Footer ── */
+        .footer-spacer { flex-grow: 1; }
+
         .print-footer {
-            margin-top: 50px;
-            border-top: 1px solid var(--border);
-            padding-top: 30px;
+            margin-top: 30px;
+            border-top: 1.5px solid var(--border);
+            padding-top: 18px;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
+            direction: ltr;
         }
-
-        .signature-area {
-            text-align: center;
-            min-width: 220px;
-        }
-
-        .signature-line {
-            width: 100%;
-            border-top: 2px solid var(--text-main);
-            margin-bottom: 8px;
-        }
-
-        .signature-name {
-            font-weight: 700;
-            font-size: 14px;
-        }
-
-        .signature-title {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
         .print-timestamp {
             font-size: 10px;
             color: var(--text-muted);
             font-style: italic;
         }
+        .signature-area { text-align: center; min-width: 200px; }
+        .signature-line {
+            width: 100%;
+            border-top: 2px solid var(--text-main);
+            margin-bottom: 7px;
+        }
+        .signature-name { font-weight: 700; font-size: 14px; }
+        .signature-title { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
         /* ── Screen Controls ── */
         .screen-controls {
             max-width: 210mm;
             margin: 20px auto 0;
-            padding: 0 20px;
+            padding: 0 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-
         .control-panel {
             background: white;
             border-radius: 12px;
-            padding: 15px 20px;
+            padding: 12px 18px;
             box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
             display: flex;
-            gap: 20px;
+            gap: 18px;
             align-items: center;
         }
-
         .control-panel h4 {
             font-size: 11px;
             text-transform: uppercase;
             color: var(--text-muted);
             letter-spacing: 0.05em;
         }
-
-        .checkbox-group {
-            display: flex;
-            gap: 15px;
-        }
-
+        .checkbox-group { display: flex; gap: 14px; }
         .checkbox-group label {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
         }
-
         .print-btn {
-            background: var(--primary);
+            background: var(--green);
             color: white;
             border: none;
-            padding: 10px 24px;
+            padding: 10px 22px;
             border-radius: 8px;
             font-weight: 700;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 4px 6px -1px var(--primary-light);
             transition: transform 0.1s;
         }
+        .print-btn:active { transform: scale(0.98); }
 
-        .print-btn:active {
-            transform: scale(0.98);
-        }
-
-        /* ── Print Overrides ── */
+        /* ── Print overrides ── */
         @media print {
-            body {
-                background: white;
-                padding: 0;
-                margin: 0;
-            }
-
+            body { background: white; padding: 0; margin: 0; }
             .page-wrapper {
                 margin: 0;
                 box-shadow: none;
                 width: 100%;
                 min-height: 95vh;
-                padding: 10mm;
+                padding: 8mm 12mm 12mm;
             }
-
-            .screen-controls {
-                display: none !important;
-            }
-
-            .content-section:last-of-type {
-                margin-bottom: 0;
-            }
-        }
-
-        /* For the specific bottom placement user requested */
-        .signature-container {
-            margin-top: auto;
-            /* This works with flex-col page-wrapper */
-            padding-bottom: 10mm;
+            .screen-controls { display: none !important; }
+            .content-section:last-of-type { margin-bottom: 0; }
         }
     </style>
 </head>
@@ -331,144 +319,166 @@
         </div>
         <button class="print-btn" onclick="window.print()">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path
-                    d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-12 0v4h12v-4m-12 0h12">
-                </path>
+                <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-12 0v4h12v-4m-12 0h12"></path>
             </svg>
             Print Summary
         </button>
     </div>
 
     <div class="page-wrapper">
-        <!-- Letterhead -->
-        <header class="letterhead">
-            <div class="clinic-brand">
-                <h1>MediTrack</h1>
-                <p>Medical Excellence & Records System</p>
-            </div>
-            <div class="report-meta">
-                <h2>Clinical Visit Summary</h2>
-                <p style="font-size: 11px; color: var(--text-muted);">Confidential Patient Record</p>
-            </div>
-        </header>
 
-        <!-- Patient Info Card -->
-        <div class="info-grid">
-            <div class="info-item">
-                <span class="info-label">Patient Name</span>
-                <span class="info-value">{{ visit.patient.name }}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Clinical Date & Time</span>
-                <span class="info-value">{{ visit.visit_date|date:"l, F j, Y" }} &mdash; {{ visit.visit_date|date:"g:i A" }}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Patient Details</span>
-                <span class="info-value">{{ visit.patient.get_gender_display }}{% if visit.patient.age %}, {{ visit.patient.age }} Years{% endif %}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Attending Physician</span>
-                <span class="info-value">
-                    {% if visit.doctor.doctor_profile.full_name %}Dr. {{ visit.doctor.doctor_profile.full_name }}{% elif visit.doctor.get_full_name %}Dr. {{ visit.doctor.get_full_name }}{% else %}Dr. {{ visit.doctor.username }}{% endif %}
-                </span>
-            </div>
+        <!-- Watermark: BC logo, very faint, centered -->
+        <div class="watermark" aria-hidden="true">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="200" rx="14" fill="#1a5c2e"/>
+                <rect x="0" y="0" width="200" height="24" fill="#c0392b"/>
+                <rect x="0" y="176" width="200" height="24" fill="#c0392b"/>
+                <text x="6" y="158" font-family="Impact,'Arial Black',sans-serif" font-size="138" font-weight="900" fill="white">B</text>
+                <text x="96" y="158" font-family="Impact,'Arial Black',sans-serif" font-size="138" font-weight="900" fill="white">C</text>
+            </svg>
         </div>
 
-        <!-- Vital Signs Section -->
-        {% if visit.temperature or visit.blood_pressure or visit.pulse or visit.weight %}
-        <section id="sec-vitals" class="content-section">
-            <div class="section-header">Objective Vital Signs</div>
-            <div class="vitals-row">
-                {% if visit.temperature %}
-                <div class="vital-card">
-                    <div class="val">{{ visit.temperature }}&deg;</div>
-                    <div class="unit">Temperature (C)</div>
+        <div class="page-content">
+
+            <!-- ===== LETTERHEAD ===== -->
+            <header class="letterhead">
+
+                <!-- LEFT: BC logo + clinic name -->
+                <div class="logo-block">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="200" height="200" rx="14" fill="#1a5c2e"/>
+                        <rect x="0" y="0" width="200" height="24" fill="#c0392b"/>
+                        <rect x="0" y="176" width="200" height="24" fill="#c0392b"/>
+                        <text x="6" y="158" font-family="Impact,'Arial Black',sans-serif" font-size="138" font-weight="900" fill="white">B</text>
+                        <text x="96" y="158" font-family="Impact,'Arial Black',sans-serif" font-size="138" font-weight="900" fill="white">C</text>
+                    </svg>
+                    <div class="clinic-name-block">
+                        <div class="clinic-name-ar">&#1575;&#1604;&#1576;&#1587;&#1605;&#1577; &#1603;&#1604;&#1610;&#1606;&#1603;</div>
+                        <div class="clinic-name-en">EL-BASMA CLINIC</div>
+                    </div>
                 </div>
-                {% endif %}
-                {% if visit.blood_pressure %}
-                <div class="vital-card">
-                    <div class="val">{{ visit.blood_pressure }}</div>
-                    <div class="unit">Blood Pressure</div>
+
+                <!-- RIGHT: doctor name + specs -->
+                <div class="doctor-block">
+                    <div class="doctor-label">&#1583;&#1603;&#1578;&#1608;&#1585;</div>
+                    <div class="doctor-name">&#1605;&#1581;&#1605;&#1583; &#1605;&#1581;&#1605;&#1608;&#1583; &#1576;&#1587;&#1610;&#1608;&#1606;&#1610;</div>
+                    <div class="doctor-spec">&#1571;&#1582;&#1589;&#1575;&#1574;&#1610; &#1575;&#1604;&#1576;&#1575;&#1591;&#1606;&#1577; &#1608;&#1575;&#1604;&#1589;&#1583;&#1585; &#1608;&#1575;&#1604;&#1581;&#1605;&#1610;&#1575;&#1578;</div>
+                    <div class="doctor-spec">&#1571;&#1591;&#1601;&#1575;&#1604; &#1608;&#1603;&#1576;&#1575;&#1585;</div>
+                    <div class="doctor-spec">&#1576;&#1605;&#1587;&#1578;&#1588;&#1601;&#1609; &#1581;&#1605;&#1610;&#1575;&#1578; &#1575;&#1604;&#1593;&#1576;&#1575;&#1587;&#1610;&#1577;</div>
+                    <div class="doctor-spec">&#1608;&#1575;&#1604;&#1588;&#1610;&#1582; &#1586;&#1575;&#1610;&#1583; &#1608;&#1593;&#1610;&#1606; &#1588;&#1605;&#1587; &#1575;&#1604;&#1593;&#1575;&#1605;</div>
                 </div>
-                {% endif %}
-                {% if visit.pulse %}
-                <div class="vital-card">
-                    <div class="val">{{ visit.pulse }}</div>
-                    <div class="unit">Pulse (BPM)</div>
+
+            </header>
+
+            <!-- ===== GREEN INFO BAR ===== -->
+            <div class="info-bar">
+                <div class="info-bar-field">
+                    <span class="info-bar-label">&#1575;&#1604;&#1575;&#1587;&#1605;:</span>
+                    <span class="info-bar-value">{{ visit.patient.name }}</span>
                 </div>
-                {% endif %}
-                {% if visit.weight %}
-                <div class="vital-card">
-                    <div class="val">{{ visit.weight }}</div>
-                    <div class="unit">Weight (KG)</div>
+                <div class="info-bar-field">
+                    <span class="info-bar-label">&#1575;&#1604;&#1587;&#1606;:</span>
+                    <span class="info-bar-value">{% if visit.patient.age %}{{ visit.patient.age }} &#1587;&#1606;&#1577;{% else %}&mdash;{% endif %}</span>
                 </div>
-                {% endif %}
+                <div class="info-bar-field">
+                    <span class="info-bar-label">&#1575;&#1604;&#1578;&#1575;&#1585;&#1610;&#1582;:</span>
+                    <span class="info-bar-value">{{ visit.visit_date|date:"Y/m/d" }}</span>
+                </div>
             </div>
-        </section>
-        {% endif %}
 
-        <!-- Subjective Findings -->
-        {% if visit.chief_complaint %}
-        <section id="sec-complaint" class="content-section">
-            <div class="section-header">Chief Complaint</div>
-            <div class="section-body" dir="auto">{{ visit.chief_complaint }}</div>
-        </section>
-        {% endif %}
+            <!-- ===== VITAL SIGNS ===== -->
+            {% if visit.temperature or visit.blood_pressure or visit.pulse or visit.weight %}
+            <section id="sec-vitals" class="content-section">
+                <div class="section-header">Vital Signs</div>
+                <div class="vitals-row">
+                    {% if visit.temperature %}
+                    <div class="vital-card">
+                        <div class="val">{{ visit.temperature }}&deg;</div>
+                        <div class="unit">Temperature (C)</div>
+                    </div>
+                    {% endif %}
+                    {% if visit.blood_pressure %}
+                    <div class="vital-card">
+                        <div class="val">{{ visit.blood_pressure }}</div>
+                        <div class="unit">Blood Pressure</div>
+                    </div>
+                    {% endif %}
+                    {% if visit.pulse %}
+                    <div class="vital-card">
+                        <div class="val">{{ visit.pulse }}</div>
+                        <div class="unit">Pulse (BPM)</div>
+                    </div>
+                    {% endif %}
+                    {% if visit.weight %}
+                    <div class="vital-card">
+                        <div class="val">{{ visit.weight }}</div>
+                        <div class="unit">Weight (KG)</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+            {% endif %}
 
-        {% if visit.symptoms %}
-        <section id="sec-symptoms" class="content-section">
-            <div class="section-header">Clinical Symptoms</div>
-            <div class="section-body" dir="auto">{{ visit.symptoms }}</div>
-        </section>
-        {% endif %}
+            <!-- ===== CHIEF COMPLAINT ===== -->
+            {% if visit.chief_complaint %}
+            <section id="sec-complaint" class="content-section">
+                <div class="section-header">Chief Complaint</div>
+                <div class="section-body" dir="auto">{{ visit.chief_complaint }}</div>
+            </section>
+            {% endif %}
 
-        <!-- Assessment -->
-        {% if visit.diagnosis %}
-        <section id="sec-diagnosis" class="content-section">
-            <div class="section-header">Clinical Assessment / Diagnosis</div>
-            <div class="section-body" dir="auto" style="font-weight: 600;">{{ visit.diagnosis }}</div>
-        </section>
-        {% endif %}
+            <!-- ===== SYMPTOMS ===== -->
+            {% if visit.symptoms %}
+            <section id="sec-symptoms" class="content-section">
+                <div class="section-header">Clinical Symptoms</div>
+                <div class="section-body" dir="auto">{{ visit.symptoms }}</div>
+            </section>
+            {% endif %}
 
-        <!-- Plan / Treatment -->
-        {% if visit.treatment %}
-        <section id="sec-treatment" class="content-section">
-            <div class="section-header">Plan & Prescription</div>
-            <div class="section-body" dir="auto"
-                style="color: var(--primary); font-size: 15px; background: var(--primary-light); padding: 15px; border-radius: 8px;">
-                {{ visit.treatment }}</div>
-        </section>
-        {% endif %}
+            <!-- ===== DIAGNOSIS ===== -->
+            {% if visit.diagnosis %}
+            <section id="sec-diagnosis" class="content-section">
+                <div class="section-header">Diagnosis</div>
+                <div class="section-body" dir="auto" style="font-weight: 600;">{{ visit.diagnosis }}</div>
+            </section>
+            {% endif %}
 
-        {% if visit.next_checkup_date %}
-        <section id="sec-checkup" class="content-section">
-            <div class="section-header">Follow-up Appointment</div>
-            <div class="section-body" style="font-weight: 600; color: #b91c1c;">Recommended follow-up on {{ visit.next_checkup_date|date:"l, F j, Y" }}</div>
-        </section>
-        {% endif %}
+            <!-- ===== TREATMENT / PRESCRIPTION ===== -->
+            {% if visit.treatment %}
+            <section id="sec-treatment" class="content-section">
+                <div class="section-header">Plan &amp; Prescription</div>
+                <div class="section-body treatment-box" dir="auto">{{ visit.treatment }}</div>
+            </section>
+            {% endif %}
 
-        <!-- Bottom Signature Section -->
-        <div class="footer-spacer"></div>
-        <div class="signature-container">
+            <!-- ===== FOLLOW-UP ===== -->
+            {% if visit.next_checkup_date %}
+            <section id="sec-checkup" class="content-section">
+                <div class="section-header">Follow-up Appointment</div>
+                <div class="section-body" style="font-weight: 600; color: #b91c1c;">Recommended follow-up on {{ visit.next_checkup_date|date:"l, F j, Y" }}</div>
+            </section>
+            {% endif %}
+
+            <!-- ===== FOOTER / SIGNATURE ===== -->
+            <div class="footer-spacer"></div>
             <div class="print-footer">
                 <div class="print-timestamp">
-                    System generated summary on {% now "F j, Y, g:i a" %}<br>
-                    Authentic record from MediTrack Clinical Network
+                    Printed on {% now "F j, Y, g:i a" %}<br>
+                    El-Basma Clinic &mdash; Dr. Mohammed Mahmoud Basyony
                 </div>
                 <div class="signature-area">
                     <div class="signature-line"></div>
-                    <div class="signature-name">
-                        {% if visit.doctor.doctor_profile.full_name %}Dr. {{ visit.doctor.doctor_profile.full_name }}{% elif visit.doctor.get_full_name %}Dr. {{ visit.doctor.get_full_name }}{% else %}Dr. {{ visit.doctor.username }}{% endif %}
-                    </div>
-                    <div class="signature-title">Authorized Medical Practitioner</div>
+                    <div class="signature-name">Dr. Mohammed Mahmoud Basyony</div>
+                    <div class="signature-title">Internal Medicine &amp; Chest Specialist</div>
                 </div>
             </div>
-        </div>
-    </div>
+
+        </div><!-- /.page-content -->
+    </div><!-- /.page-wrapper -->
 
     <script>
         function toggle(sectionId, checkbox) {
-            const el = document.getElementById(sectionId);
+            var el = document.getElementById(sectionId);
             if (el) el.style.display = checkbox.checked ? 'block' : 'none';
         }
     </script>
