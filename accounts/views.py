@@ -69,106 +69,39 @@ def logout_view(request):
     return redirect('login')
 
 
-# ─────────────────────────── Admin — Dashboard ───────────────────────────────
-
 @admin_required
 def admin_dashboard(request):
-    today = timezone.now().date()
-    this_week_start = today - timedelta(days=today.weekday())
-    this_month_start = today.replace(day=1)
-    last_month_end = this_month_start - timedelta(days=1)
-    last_month_start = last_month_end.replace(day=1)
-
-    patients_qs = Patient.objects.all()
-    visits_qs = Visit.objects.all()
-
-    # ── Aggregate stats ───────────────────────────────────────────────────────
-    patient_agg = patients_qs.aggregate(
-        total=Count('id'),
-        male=Count('id', filter=Q(gender='male')),
-        female=Count('id', filter=Q(gender='female')),
-    )
-    total_patients = patient_agg['total']
-    male_patients = patient_agg['male']
-    female_patients = patient_agg['female']
-    patients_with_visits = patients_qs.annotate(vc=Count('visits')).filter(vc__gt=0).count()
-    patients_without_visits = total_patients - patients_with_visits
-
-    total_visits = visits_qs.count()
-    today_visits = visits_qs.filter(visit_date__date=today).count()
-    this_week_visits = visits_qs.filter(visit_date__date__gte=this_week_start).count()
-    this_month_visits = visits_qs.filter(visit_date__date__gte=this_month_start).count()
-    last_month_visits = Visit.objects.filter(
-        visit_date__date__gte=last_month_start,
-        visit_date__date__lte=last_month_end,
-    ).count()
-
-    if last_month_visits > 0:
-        visit_growth = round(((this_month_visits - last_month_visits) / last_month_visits) * 100, 1)
-    else:
-        visit_growth = 0
-    abs_visit_growth = abs(visit_growth)
-
-    oldest_row = visits_qs.aggregate(oldest=Min('visit_date'))
-    oldest_date = oldest_row['oldest']
-    if oldest_date and total_visits > 0:
-        span_days = max(1, (today - oldest_date.date()).days + 1)
-        avg_visits_per_day = round(total_visits / span_days, 1)
-    else:
-        avg_visits_per_day = 0
-
-    visits_with_temp = visits_qs.filter(temperature__isnull=False).count()
-    visits_with_bp = visits_qs.exclude(blood_pressure='').count()
-    visits_with_pulse = visits_qs.filter(pulse__isnull=False).count()
-    visits_with_weight = visits_qs.filter(weight__isnull=False).count()
-
-    visits_with_files = visits_qs.annotate(fc=Count('files')).filter(fc__gt=0).count()
-    visits_without_files = total_visits - visits_with_files
-
-    recent_visits = (
-        visits_qs
-        .select_related('patient', 'doctor', 'doctor__doctor_profile')
-        .prefetch_related('files')
-        .order_by('-visit_date')[:15]
-    )
-
-    # ── Daily breakdown ───────────────────────────────────────────────────────
-    from django.db.models.functions import TruncDate
-    days_range = [today - timedelta(days=6 - i) for i in range(7)]
-    daily_counts = {
-        row['day']: row['cnt']
-        for row in visits_qs
-            .filter(visit_date__date__gte=days_range[0], visit_date__date__lte=today)
-            .annotate(day=TruncDate('visit_date'))
-            .values('day')
-            .annotate(cnt=Count('id'))
+    """
+    Repurposed Admin Dashboard showing system-level activity, 
+    logs, and navigation to the Django Admin.
+    """
+    from django.contrib.admin.models import LogEntry
+    from django.db.models import Count
+    
+    # ── System Stats ──────────────────────────────────────────────────────────
+    stats = {
+        'total_users': User.objects.count(),
+        'active_users': User.objects.filter(is_active=True).count(),
+        'total_patients': Patient.objects.count(),
+        'total_visits': Visit.objects.count(),
     }
-    daily_breakdown = [
-        {'date': d, 'day_name': d.strftime('%A'), 'visits': daily_counts.get(d, 0)}
-        for d in days_range
-    ]
+
+    # ── Activity Logs — Detailed LogEntry ─────────────────────────────────────
+    # This shows who did what in the system (via admin or app logic that logs)
+    logs = (
+        LogEntry.objects.all()
+        .select_related('user', 'content_type')
+        .order_by('-action_time')[:100]
+    )
+
+    # ── Recent System Content ─────────────────────────────────────────────────
+    recent_patients = Patient.objects.order_by('-created_at')[:5]
+    recent_visits = Visit.objects.select_related('patient', 'doctor').order_by('-created_at')[:5]
 
     context = {
-        'total_patients': total_patients,
-        'male_patients': male_patients,
-        'female_patients': female_patients,
-        'patients_with_visits': patients_with_visits,
-        'patients_without_visits': patients_without_visits,
-        'total_visits': total_visits,
-        'today_visits': today_visits,
-        'this_week_visits': this_week_visits,
-        'this_month_visits': this_month_visits,
-        'last_month_visits': last_month_visits,
-        'visit_growth': visit_growth,
-        'abs_visit_growth': abs_visit_growth,
-        'avg_visits_per_day': avg_visits_per_day,
-        'visits_with_temp': visits_with_temp,
-        'visits_with_bp': visits_with_bp,
-        'visits_with_pulse': visits_with_pulse,
-        'visits_with_weight': visits_with_weight,
-        'visits_with_files': visits_with_files,
-        'visits_without_files': visits_without_files,
+        'stats': stats,
+        'logs': logs,
+        'recent_patients': recent_patients,
         'recent_visits': recent_visits,
-        'daily_breakdown': daily_breakdown,
     }
     return render(request, 'accounts/admin_dashboard.html', context)

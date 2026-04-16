@@ -120,7 +120,7 @@
         </div>
         <div class="flex-1 min-w-0">
             <a href="{% url 'patient_detail' patient.pk %}" class="font-semibold text-textmain">{{ patient.name }}</a>
-            <div class="text-xs text-muted">{{ patient.phone|default:"No phone" }} &#183; {% if patient.age %}{{         patient.age }} yrs{% else %}Age unknown{% endif %}</div>
+            <div class="text-xs text-muted">{{ patient.phone|default:"No phone" }} &#183; {% if patient.age %}{{ patient.age }} yrs{% else %}Age unknown{% endif %}</div>
             <div class="text-xs text-muted mt-0.5">{{ patient.visit_count }} visit{{ patient.visit_count|pluralize }}
                 &#183; {% if patient.last_visit_date %}Last: {{ patient.last_visit_date }}{% else %}No
                 visits{% endif %}</div>

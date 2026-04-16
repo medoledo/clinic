@@ -22,30 +22,34 @@
 
         /* ── Brand block ── */
         .brand {
-            text-align: center;
-            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 32px;
+            text-align: left;
         }
         .brand-logo {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 14px;
-            filter: drop-shadow(0 6px 16px rgba(0,0,0,0.35));
+            width: 76px;
+            height: 76px;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.25));
+            flex-shrink: 0;
         }
+        .brand-info { line-height: 1.1; }
         .brand-name-ar {
             font-family: 'Noto Sans Arabic', sans-serif;
-            font-size: 26px;
+            font-size: 28px;
             font-weight: 900;
             color: #ffffff;
-            letter-spacing: 0.5px;
-            line-height: 1.15;
+            letter-spacing: 0.2px;
         }
         .brand-name-en {
-            font-size: 12px;
-            font-weight: 700;
+            font-size: 12.5px;
+            font-weight: 800;
             color: #fca5a5;
-            letter-spacing: 3px;
+            letter-spacing: 1.8px;
             text-transform: uppercase;
-            margin-top: 3px;
+            margin-top: 4px;
         }
 
         /* ── Card ── */
@@ -152,15 +156,17 @@
     <!-- Brand -->
     <div class="brand">
         <!-- BC Logo SVG -->
-        <svg class="brand-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <rect width="200" height="200" rx="14" fill="#1a5c2e"/>
-            <rect x="0" y="0" width="200" height="24" fill="#c0392b"/>
-            <rect x="0" y="176" width="200" height="24" fill="#c0392b"/>
-            <text x="6" y="158" font-family="Impact,'Arial Black',sans-serif" font-size="138" font-weight="900" fill="white">B</text>
-            <text x="96" y="158" font-family="Impact,'Arial Black',sans-serif" font-size="138" font-weight="900" fill="white">C</text>
-        </svg>
-        <div class="brand-name-ar">&#1575;&#1604;&#1576;&#1587;&#1605;&#1577; &#1603;&#1604;&#1610;&#1606;&#1603;</div>
-        <div class="brand-name-en">EL-BASMA CLINIC</div>
+        <svg class="brand-logo" viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="240" height="200" rx="4" fill="#1a5c2e"/>
+    <rect x="0" y="0" width="240" height="20" fill="#c0392b"/>
+    <rect x="0" y="180" width="240" height="20" fill="#c0392b"/>
+    <text x="20" y="155" font-family="Georgia, serif" font-size="130" font-weight="bold" fill="white">B</text>
+    <text x="125" y="155" font-family="Georgia, serif" font-size="130" font-weight="bold" fill="white">C</text>
+</svg>
+        <div class="brand-info">
+            <div class="brand-name-ar">&#1575;&#1604;&#1576;&#1587;&#1605;&#1577; &#1603;&#1604;&#1610;&#1606;&#1603;</div>
+            <div class="brand-name-en">EL-BASMA CLINIC</div>
+        </div>
     </div>
 
     <!-- Login Card -->

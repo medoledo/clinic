@@ -1,124 +1,206 @@
 {% extends 'base.html' %}
-{% block title %}Admin Dashboard — El-Basma Clinic{% endblock %}
-{% block page_title %}Admin Dashboard{% endblock %}
+{% block title %}System Administration — El-Basma Clinic{% endblock %}
+{% block page_title %}System Administration{% endblock %}
 
 {% block content %}
 
-<!-- Overview Stats -->
-<div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-    <div class="stat-card !p-3 text-center">
-        <div class="text-muted text-[10px] font-semibold uppercase">Patients</div>
-        <div class="text-xl font-bold text-primary">{{ total_patients }}</div>
+<!-- ─── Overview Stats (Cleaner & Larger) ─── -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="card p-5 border-l-4 border-primary">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-muted text-xs font-bold uppercase tracking-wider">System Users</span>
+            <svg class="w-5 h-5 text-primary opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+        </div>
+        <div class="flex items-baseline gap-2">
+            <span class="text-3xl font-black text-textmain">{{ stats.total_users }}</span>
+            <span class="text-xs font-semibold text-green-600">({{ stats.active_users }} active)</span>
+        </div>
     </div>
-    <div class="stat-card !p-3 text-center">
-        <div class="text-muted text-[10px] font-semibold uppercase">Total Visits</div>
-        <div class="text-xl font-bold text-warning">{{ total_visits }}</div>
+    
+    <div class="card p-5 border-l-4 border-success">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-muted text-xs font-bold uppercase tracking-wider">Total Patients</span>
+            <svg class="w-5 h-5 text-success opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        </div>
+        <div class="text-3xl font-black text-textmain">{{ stats.total_patients }}</div>
     </div>
-    <div class="stat-card !p-3 text-center">
-        <div class="text-muted text-[10px] font-semibold uppercase">Today</div>
-        <div class="text-xl font-bold text-success">{{ today_visits }}</div>
+
+    <div class="card p-5 border-l-4 border-warning">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-muted text-xs font-bold uppercase tracking-wider">Clinic Visits</span>
+            <svg class="w-5 h-5 text-warning opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+        </div>
+        <div class="text-3xl font-black text-textmain">{{ stats.total_visits }}</div>
     </div>
-    <div class="stat-card !p-3 text-center">
-        <div class="text-muted text-[10px] font-semibold uppercase">Avg/Day</div>
-        <div class="text-xl font-bold text-textmain">{{ avg_visits_per_day }}</div>
+
+    <div class="card p-5 border-l-4 border-slate-400 bg-slate-50">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-muted text-xs font-bold uppercase tracking-wider">System Health</span>
+            <span class="flex h-2 w-2 rounded-full bg-success"></span>
+        </div>
+        <div class="text-lg font-bold text-success flex items-center gap-2">
+            Operational
+        </div>
+        <div class="text-[10px] text-muted font-medium mt-1">All services responding normally</div>
     </div>
 </div>
 
-<!-- Patient Analytics -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-    <div class="stat-card !p-3">
-        <div class="text-muted text-[10px] font-semibold uppercase mb-2">Patient Gender</div>
-        <div class="flex justify-between text-sm">
-            <span>Male: <strong>{{ male_patients }}</strong></span>
-            <span>Female: <strong>{{ female_patients }}</strong></span>
+<!-- ─── Django Admin Launcher (Highlighted Card) ─── -->
+<div class="card p-6 bg-slate-900 text-white mb-8 border-none relative overflow-hidden group">
+    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="max-w-xl">
+            <h3 class="text-xl font-bold mb-2 flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                </div>
+                Django Database Admin Panel
+            </h3>
+            <p class="text-slate-400 text-sm">Advanced system management: Manage patient data directly, investigate technical error logs, and configure low-level user permissions.</p>
         </div>
+        <a href="/admin/" target="_blank" class="shrink-0 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02]">
+            Launch Admin Console
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+        </a>
     </div>
-    <div class="stat-card !p-3">
-        <div class="text-muted text-[10px] font-semibold uppercase mb-2">With / Without Visits</div>
-        <div class="flex justify-between text-sm">
-            <span>Seen: <strong>{{ patients_with_visits }}</strong></span>
-            <span>New: <strong>{{ patients_without_visits }}</strong></span>
-        </div>
-    </div>
-    <div class="stat-card !p-3">
-        <div class="text-muted text-[10px] font-semibold uppercase mb-2">Visit Timeline</div>
-        <div class="space-y-1 text-sm">
-            <div class="flex justify-between"><span>Week</span><strong>{{ this_week_visits }}</strong></div>
-            <div class="flex justify-between"><span>Month</span><strong>{{ this_month_visits }}</strong></div>
-            <div class="flex justify-between"><span>Growth</span><strong class="{% if visit_growth >= 0 %}text-success{% else %}text-danger{% endif %}">{% if visit_growth >= 0 %}↑{% else %}↓{% endif %}{{ abs_visit_growth }}%</strong></div>
-        </div>
-    </div>
-    <div class="stat-card !p-3">
-        <div class="text-muted text-[10px] font-semibold uppercase mb-2">Vitals Recorded</div>
-        <div class="space-y-1 text-sm">
-            <div class="flex justify-between"><span>Temp</span><strong>{{ visits_with_temp }}</strong></div>
-            <div class="flex justify-between"><span>BP</span><strong>{{ visits_with_bp }}</strong></div>
-            <div class="flex justify-between"><span>Pulse</span><strong>{{ visits_with_pulse }}</strong></div>
-            <div class="flex justify-between"><span>Weight</span><strong>{{ visits_with_weight }}</strong></div>
-        </div>
+    <!-- Subtle BG pattern -->
+    <div class="absolute -right-6 -bottom-6 text-slate-800 opacity-20 transform rotate-12 group-hover:rotate-6 transition-transform">
+        <svg class="w-48 h-48" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
     </div>
 </div>
 
-<!-- Last 7 Days -->
-<div class="card mb-5">
-    <div class="px-4 py-2 border-b border-border">
-        <h3 class="font-bold text-textmain text-sm">Last 7 Days</h3>
+<!-- ─── Activity Log (Human Readable Table) ─── -->
+<div class="card mb-8">
+    <div class="px-6 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h3 class="font-bold text-textmain text-lg">Detailed Activity Log</h3>
+            <p class="text-xs text-muted">A complete history of data changes and system actions.</p>
+        </div>
+        <div class="bg-slate-100 px-3 py-1.5 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
+            Last 100 Actions
+        </div>
     </div>
+    
     <div class="overflow-x-auto">
-        <table class="w-full">
+        <table class="w-full border-collapse">
             <thead>
-                <tr class="bg-gray-50">
-                    {% for day in daily_breakdown %}
-                    <th class="text-center px-3 py-2 text-[10px] font-semibold text-muted uppercase">{{ day.day_name|slice:":3" }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    {% for day in daily_breakdown %}
-                    <td class="text-center px-3 py-2 text-sm font-bold text-textmain">{{ day.visits }}</td>
-                    {% endfor %}
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Recent Visits -->
-<div class="card">
-    <div class="px-4 py-2 border-b border-border">
-        <h3 class="font-bold text-textmain text-sm">Recent Visits</h3>
-    </div>
-    {% if recent_visits %}
-    <div class="overflow-x-auto">
-        <table class="w-full">
-            <thead>
-                <tr class="bg-gray-50">
-                    <th class="text-left px-4 py-2 text-[10px] font-semibold text-muted uppercase">Date</th>
-                    <th class="text-left px-4 py-2 text-[10px] font-semibold text-muted uppercase">Patient</th>
-                    <th class="text-left px-4 py-2 text-[10px] font-semibold text-muted uppercase">Diagnosis</th>
-                    <th class="text-center px-4 py-2 text-[10px] font-semibold text-muted uppercase">Files</th>
+                <tr class="bg-slate-50 border-b border-border text-[11px] font-bold text-muted uppercase tracking-wider text-left">
+                    <th class="px-6 py-4">Timestamp</th>
+                    <th class="px-6 py-4">Responsible User</th>
+                    <th class="px-6 py-4 text-center">Action Type</th>
+                    <th class="px-6 py-4">Affected Record</th>
+                    <th class="px-6 py-4 text-center">Module</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-border">
-                {% for v in recent_visits %}
+                {% for log in logs %}
+                <tr class="hover:bg-blue-50/30 transition-colors group">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-xs font-semibold text-textmain">{{ log.action_time|date:"d M Y" }}</div>
+                        <div class="text-[10px] text-muted">{{ log.action_time|date:"H:i:s" }}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-white border border-border shadow-sm flex items-center justify-center text-xs font-bold text-primary">
+                                {{ log.user.username|first|upper }}
+                            </div>
+                            <div class="text-sm font-bold text-textmain">{{ log.user.username }}</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        {% if log.is_addition %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold bg-green-100 text-green-700 uppercase">Created</span>
+                        {% elif log.is_change %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 uppercase">Modified</span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold bg-red-100 text-red-700 uppercase">Deleted</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-medium text-textmain truncate max-w-[280px]" title="{{ log.object_repr }}">
+                            {{ log.object_repr }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-muted border border-slate-200">
+                            {{ log.content_type.model }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
                 <tr>
-                    <td class="px-4 py-2 text-xs text-muted">{{ v.visit_date|date:"d/m/Y g:i A" }}</td>
-                    <td class="px-4 py-2 text-sm font-medium text-textmain">{{ v.patient.name }}</td>
-                    <td class="px-4 py-2 text-xs text-muted max-w-[200px] truncate">{{ v.diagnosis|default:"—" }}</td>
-                    <td class="px-4 py-2 text-center text-xs">
-                        {% with fc=v.files.all|length %}{% if fc > 0 %}<span class="badge badge-blue !text-[10px]">{{ fc }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endif %}{% endwith %}
+                    <td colspan="5" class="px-6 py-20 text-center">
+                        <div class="flex flex-col items-center gap-2 opacity-30">
+                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span class="text-sm font-bold">No activity recorded yet.</span>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    {% else %}
-    <div class="text-center py-8">
-        <p class="text-muted text-sm">No visits yet.</p>
+</div>
+
+<!-- ─── Recent Records (Compact Lists) ─── -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="card overflow-hidden">
+        <div class="px-6 py-4 bg-slate-50 border-b border-border">
+            <h4 class="font-bold text-sm text-textmain flex items-center gap-2">
+                <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Newest Patient Files
+            </h4>
+        </div>
+        <div class="divide-y divide-border">
+            {% for p in recent_patients %}
+            <div class="px-6 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                <span class="text-sm font-semibold text-textmain">{{ p.name }}</span>
+                <span class="text-[10px] font-bold text-muted bg-slate-100 px-2 py-0.5 rounded">{{ p.created_at|date:"d M, Y" }}</span>
+            </div>
+            {% empty %}
+            <p class="px-6 py-8 text-center text-xs text-muted">No patient records found.</p>
+            {% endfor %}
+        </div>
     </div>
-    {% endif %}
+    
+    <div class="card overflow-hidden">
+        <div class="px-6 py-4 bg-slate-50 border-b border-border">
+            <h4 class="font-bold text-sm text-textmain flex items-center gap-2">
+                <svg class="w-4 h-4 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>Recent Clinic Visits
+            </h4>
+        </div>
+        <div class="divide-y divide-border">
+            {% for v in recent_visits %}
+            <div class="px-6 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                <div class="flex flex-col">
+                    <span class="text-sm font-semibold text-textmain">{{ v.patient.name }}</span>
+                    <span class="text-[10px] text-muted">Assisted by Dr. {{ v.doctor.username }}</span>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs font-bold text-primary">{{ v.visit_date|date:"d M" }}</div>
+                    <div class="text-[9px] text-muted">{{ v.visit_date|date:"H:i" }}</div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="px-6 py-8 text-center text-xs text-muted">No visits recorded.</p>
+            {% endfor %}
+        </div>
+    </div>
 </div>
 
 {% endblock %}
