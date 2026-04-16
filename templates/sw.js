@@ -1,8 +1,8 @@
 /**
- * sw.js — MediTrack Service Worker
+ * sw.js — El-Basma Clinic Service Worker
  * Caches static assets and pages for offline use
  */
-const CACHE_NAME = 'meditrack-v1';
+const CACHE_NAME = 'el-basma-v1';
 const STATIC_ASSETS = [
     '/static/js/voice.js',
     '/static/js/search.js',

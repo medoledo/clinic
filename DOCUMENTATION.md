@@ -645,9 +645,27 @@ Doctor clicks "Stop Recording"
 mediaRecorder.stop() → onstop fires → sendRecording()
 ```
 
-**ESC to cancel:** If the doctor presses Escape while recording, `mediaRecorder.onstop` is overridden to a no-op — preventing the audio from being sent.
+**ESC to cancel:**---
+
+### 3. Login Page & Registration
+
+- **Removed Registration**: Deleted the `register` view, URL, and template.
+- **Rebranded Login**: rewritten `login.html` with Green/Red El-Basma branding and BC SVG logo.
 
 ---
+
+### 4. Multi-Doctor Feature Removal
+
+- **Cleaned `accounts/views.py`**: Removed all doctor management views (`manage_doctors`, `add_doctor`, etc.).
+- **Simplified URLs**: Removed all doctor CRUD routes.
+- **Simplified Templates**: Removed doctor performance tables and management links from the admin dashboard.
+- **Deleted Dead Code**: Removed 5 unused `.html` templates from the accounts folder.
+
+---
+
+### 5. Global Branding Sweep
+
+- Replaced all remaining instances of "MediTrack" in titles, metadata, and service workers with **El-Basma Clinic**.
 
 ### 6.2 Sending to Backend (`voice.js` → `transcribe_and_parse`)
 

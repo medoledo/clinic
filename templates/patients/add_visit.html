@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Add Visit &mdash; {{ patient.name }} &mdash; MediTrack{% endblock %}
+{% block title %}Add Visit &mdash; {{ patient.name }} &mdash; El-Basma Clinic{% endblock %}
 {% block page_title %}{% if is_edit %}Edit Visit{% else %}Add Visit{% endif %}{% endblock %}
 
 {% block top_actions %}
@@ -455,7 +455,7 @@
     }
 
     // ── Draft Auto-save ──
-    const DRAFT_KEY = 'meditrack_visit_draft_{{ patient.pk }}';
+    const DRAFT_KEY = 'elbasma_visit_draft_{{ patient.pk }}';
     const formFields = ['chief_complaint', 'symptoms', 'diagnosis', 'treatment', 'doctor_notes'];
 
     function saveDraft() {

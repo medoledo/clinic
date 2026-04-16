@@ -1,5 +1,5 @@
 """
-Django settings for MediTrack (clinic) project.
+Django settings for El-Basma Clinic (clinic) project.
 
 Keep DEBUG=True for development only.
 In production: set DEBUG=False, configure ALLOWED_HOSTS properly,
@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # MediTrack apps
+    # El-Basma Clinic apps
     'accounts',
     'patients',
 ]

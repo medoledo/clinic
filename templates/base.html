@@ -5,10 +5,10 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}MediTrack{% endblock %}</title>
+    <title>{% block title %}El-Basma Clinic{% endblock %}</title>
     <script>
         (function() {
-            var SIDEBAR_KEY = 'meditrack_sidebar_open';
+            var SIDEBAR_KEY = 'elbasma_sidebar_open';
             var isOpen = localStorage.getItem(SIDEBAR_KEY) !== 'false';
             if (!isOpen) {
                 document.documentElement.classList.add('sidebar-closed');
@@ -37,7 +37,7 @@
             transition: none !important;
         }
     </style>
-    <meta name="description" content="MediTrack — Doctor Visit Records Management System" />
+    <meta name="description" content="El-Basma Clinic — Doctor Visit Records Management System" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -450,7 +450,7 @@
                     </svg>
                 </div>
                 <div>
-                    <div class="text-white font-bold text-sm">MediTrack</div>
+                    <div class="text-white font-bold text-sm">El-Basma Clinic</div>
                     <div class="text-slate-400 text-xs">Visit Records</div>
                 </div>
             </div>
@@ -567,7 +567,7 @@
                     {% endif %}
                 </nav>
             </div>
-            <h1 class="text-lg font-bold text-textmain">{% block page_title %}MediTrack{% endblock %}</h1>
+            <h1 class="text-lg font-bold text-textmain">{% block page_title %}El-Basma Clinic{% endblock %}</h1>
             <div class="flex items-center gap-3">
                 {% block top_actions %}{% endblock %}
                 <div class="flex items-center gap-2">
@@ -731,7 +731,7 @@
         // Sidebar toggle with localStorage persistence
         (function () {
             var toggle = document.getElementById('sidebar-toggle');
-            var SIDEBAR_KEY = 'meditrack_sidebar_open';
+            var SIDEBAR_KEY = 'elbasma_sidebar_open';
             
             if (!toggle) return;
 
