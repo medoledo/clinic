@@ -6,7 +6,7 @@
     'use strict';
 
     const DB_NAME = 'meditrack_offline';
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
     const STORE_NAME = 'pending_visits';
 
     // ── UI Elements ──
@@ -148,18 +148,6 @@
     }
 
     // ── Banner helpers ──
-    let offlineBannerTimer = null;
-
-    function showOfflineBanner() {
-        if (!offlineBanner) return;
-        if (sessionStorage.getItem('offlineBannerClosed') === '1') return;
-        offlineBanner.style.display = 'block';
-        clearTimeout(offlineBannerTimer);
-        offlineBannerTimer = setTimeout(() => {
-            offlineBanner.style.display = 'none';
-        }, 3000);
-    }
-
     let onlineBannerTimer = null;
 
     function showOnlineBanner() {
@@ -172,14 +160,6 @@
     }
 
     // Wire close buttons
-    const offlineCloseBtn = document.getElementById('offline-banner-close');
-    if (offlineCloseBtn) {
-        offlineCloseBtn.addEventListener('click', () => {
-            sessionStorage.setItem('offlineBannerClosed', '1');
-            if (offlineBanner) offlineBanner.style.display = 'none';
-            clearTimeout(offlineBannerTimer); // Clear timer when manually closed
-        });
-    }
     const onlineCloseBtn = document.getElementById('online-banner-close');
     if (onlineCloseBtn) {
         onlineCloseBtn.addEventListener('click', () => {
@@ -190,7 +170,7 @@
 
     // ── Network Status ──
     function setOnline() {
-        sessionStorage.removeItem('offlineBannerClosed');
+        localStorage.removeItem('offlineBannerClosed');
         if (offlineBanner) offlineBanner.style.display = 'none';
         showOnlineBanner();
         [networkDot, networkDotTop].forEach(d => {
@@ -202,7 +182,7 @@
 
     function setOffline() {
         if (onlineBanner) onlineBanner.style.display = 'none';
-        showOfflineBanner();
+        
         [networkDot, networkDotTop].forEach(d => {
             if (d) { d.classList.remove('bg-success'); d.classList.add('bg-danger'); }
         });

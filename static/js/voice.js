@@ -361,7 +361,8 @@ document.addEventListener('DOMContentLoaded', () => {
     recordBtn.addEventListener('click', () => {
         if (!isRecording && !isOfflineMode) {
             if (!navigator.onLine) {
-                startOfflineRecording();
+                setStatus('Connect to the internet first', 'error');
+                return;
             } else {
                 startRecording();
             }

@@ -572,14 +572,27 @@
                 try { localStorage.removeItem(DRAFT_KEY); } catch (e) { }
                 alert('Visit saved locally. Will sync when internet returns.');
                 window.location = '{% url "patient_detail" patient.pk %}';
+            }).catch(err => {
+                console.error('Offline save error:', err);
+                alert('Error saving locally: ' + err.message);
+                resetSaveButton();
             });
         } else {
             alert('Could not save offline. Please reconnect and try again.');
-            const btn = document.getElementById('save-visit-btn');
-            btn.disabled = false;
-            document.getElementById('save-text').textContent = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Save Visit';
-            document.getElementById('save-spinner').classList.add('hidden');
+            resetSaveButton();
         }
+
+    function resetSaveButton() {
+        const btn = document.getElementById('save-visit-btn');
+        const text = document.getElementById('save-text');
+        const spinner = document.getElementById('save-spinner');
+        if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('opacity-75', 'cursor-not-allowed');
+        }
+        if (text) text.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> {% if is_edit %}Save Changes{% else %}Save Visit{% endif %}';
+        if (spinner) spinner.classList.add('hidden');
+    }
     }
 </script>
 {% endblock %}
