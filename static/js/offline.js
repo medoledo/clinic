@@ -123,7 +123,7 @@
     function showSyncProgress(msg) {
         const el = document.getElementById('sync-progress');
         if (el) { el.textContent = msg; el.classList.remove('hidden'); }
-        if (onlineBanner) { onlineBanner.textContent = msg; onlineBanner.style.display = 'block'; }
+        const onlineTxt = document.getElementById('online-banner-text'); if (onlineTxt) onlineTxt.textContent = msg; if (onlineBanner) onlineBanner.style.display = 'block';
         setTimeout(() => { if (onlineBanner) onlineBanner.style.display = 'none'; }, 3000);
     }
     function hideSyncProgress() {
@@ -147,10 +147,50 @@
         } catch (e) { }
     }
 
+    // ── Banner helpers ──
+    let offlineBannerTimer = null;
+
+    function showOfflineBanner() {
+        if (!offlineBanner) return;
+        if (sessionStorage.getItem('offlineBannerClosed') === '1') return;
+        offlineBanner.style.display = 'block';
+        clearTimeout(offlineBannerTimer);
+        offlineBannerTimer = setTimeout(() => {
+            offlineBanner.style.display = 'none';
+        }, 3000);
+    }
+
+    let onlineBannerTimer = null;
+
+    function showOnlineBanner() {
+        if (!onlineBanner) return;
+        onlineBanner.style.display = 'block';
+        clearTimeout(onlineBannerTimer);
+        onlineBannerTimer = setTimeout(() => {
+            onlineBanner.style.display = 'none';
+        }, 3000);
+    }
+
+    // Wire close buttons
+    const offlineCloseBtn = document.getElementById('offline-banner-close');
+    if (offlineCloseBtn) {
+        offlineCloseBtn.addEventListener('click', () => {
+            sessionStorage.setItem('offlineBannerClosed', '1');
+            if (offlineBanner) offlineBanner.style.display = 'none';
+        });
+    }
+    const onlineCloseBtn = document.getElementById('online-banner-close');
+    if (onlineCloseBtn) {
+        onlineCloseBtn.addEventListener('click', () => {
+            if (onlineBanner) onlineBanner.style.display = 'none';
+        });
+    }
+
     // ── Network Status ──
     function setOnline() {
+        sessionStorage.removeItem('offlineBannerClosed');
         if (offlineBanner) offlineBanner.style.display = 'none';
-        if (onlineBanner) { onlineBanner.style.display = 'block'; setTimeout(() => { onlineBanner.style.display = 'none'; }, 3000); }
+        showOnlineBanner();
         [networkDot, networkDotTop].forEach(d => {
             if (d) { d.classList.remove('bg-danger'); d.classList.add('bg-success'); }
         });
@@ -159,8 +199,8 @@
     }
 
     function setOffline() {
-        if (offlineBanner) { offlineBanner.style.display = 'block'; setTimeout(() => { offlineBanner.style.display = 'none'; }, 3000); }
         if (onlineBanner) onlineBanner.style.display = 'none';
+        showOfflineBanner();
         [networkDot, networkDotTop].forEach(d => {
             if (d) { d.classList.remove('bg-success'); d.classList.add('bg-danger'); }
         });

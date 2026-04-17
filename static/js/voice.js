@@ -14,20 +14,20 @@ const SAVE_CORRECTION_URL = '/save-correction/';
 // --- i18n strings from template data attributes ---
 const recorderContainer = document.querySelector('.visit-recorder');
 const STRINGS = recorderContainer ? {
-    listening:       recorderContainer.dataset.statusListeningEn || recorderContainer.dataset.statusListening,
-    processing:      recorderContainer.dataset.statusProcessingEn || recorderContainer.dataset.statusProcessing,
-    success:         recorderContainer.dataset.statusSuccessEn || recorderContainer.dataset.statusSuccess,
-    errorMic:        recorderContainer.dataset.statusErrorMicEn || recorderContainer.dataset.statusErrorMic,
+    listening: recorderContainer.dataset.statusListeningEn || recorderContainer.dataset.statusListening,
+    processing: recorderContainer.dataset.statusProcessingEn || recorderContainer.dataset.statusProcessing,
+    success: recorderContainer.dataset.statusSuccessEn || recorderContainer.dataset.statusSuccess,
+    errorMic: recorderContainer.dataset.statusErrorMicEn || recorderContainer.dataset.statusErrorMic,
     errorConnection: recorderContainer.dataset.statusErrorConnectionEn || recorderContainer.dataset.statusErrorConnection,
-    offline:         recorderContainer.dataset.statusOfflineEn || recorderContainer.dataset.statusOffline,
-    offlineDone:     recorderContainer.dataset.statusOfflineDoneEn || recorderContainer.dataset.statusOfflineDone,
-    empty:           recorderContainer.dataset.statusEmptyEn || recorderContainer.dataset.statusEmpty,
-    btnRecord:       recorderContainer.dataset.btnRecordEn || recorderContainer.dataset.btnRecord,
-    btnStop:         recorderContainer.dataset.btnStopEn || recorderContainer.dataset.btnStop,
-    suggest:         recorderContainer.dataset.lblSuggestEn || recorderContainer.dataset.lblSuggest,
-    instead:         recorderContainer.dataset.lblInsteadEn || recorderContainer.dataset.lblInstead,
-    yes:             recorderContainer.dataset.lblYesEn || recorderContainer.dataset.lblYes,
-    no:              recorderContainer.dataset.lblNoEn || recorderContainer.dataset.lblNo,
+    offline: recorderContainer.dataset.statusOfflineEn || recorderContainer.dataset.statusOffline,
+    offlineDone: recorderContainer.dataset.statusOfflineDoneEn || recorderContainer.dataset.statusOfflineDone,
+    empty: recorderContainer.dataset.statusEmptyEn || recorderContainer.dataset.statusEmpty,
+    btnRecord: recorderContainer.dataset.btnRecordEn || recorderContainer.dataset.btnRecord,
+    btnStop: recorderContainer.dataset.btnStopEn || recorderContainer.dataset.btnStop,
+    suggest: recorderContainer.dataset.lblSuggestEn || recorderContainer.dataset.lblSuggest,
+    instead: recorderContainer.dataset.lblInsteadEn || recorderContainer.dataset.lblInstead,
+    yes: recorderContainer.dataset.lblYesEn || recorderContainer.dataset.lblYes,
+    no: recorderContainer.dataset.lblNoEn || recorderContainer.dataset.lblNo,
 } : {};
 
 function getCSRFToken() {
@@ -106,6 +106,11 @@ async function startRecording() {
     } catch (err) {
         setStatus(STRINGS.errorMic, 'error');
         console.error('Microphone error:', err);
+        isRecording = false;
+        if (recordBtn) {
+            recordBtn.classList.remove('recording');
+            recordBtn.innerHTML = STRINGS.btnRecord;
+        }
     }
 }
 
@@ -115,12 +120,20 @@ function stopRecording() {
         isRecording = false;
         recordBtn.classList.remove('recording');
         recordBtn.innerHTML = STRINGS.btnRecord;
-        if (errorMessage) { setStatus(errorMessage, 'error'); setTimeout(() => setStatus('', 'info'), 5000); } else { setStatus(STRINGS.processing, 'loading'); }
+        setStatus(STRINGS.processing, 'loading');
     }
 }
 
 async function sendRecording() {
     if (audioChunks.length === 0) return;
+
+    // If still offline, don't attempt the fetch — just inform the user
+    if (!navigator.onLine) {
+        setStatus('🎙️ Audio recorded — connect to internet to transcribe', 'warning');
+        setTimeout(resetStatusUI, 5000);
+        return;
+    }
+
     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
     const formData = new FormData();
     formData.append('audio', audioBlob, 'visit.webm');
@@ -286,50 +299,17 @@ async function checkAllFieldsForSuggestions(fields) {
     }
 }
 
-// --- Offline fallback: Web Speech API ---
+// --- Offline fallback: use raw audio recording ---
+// SpeechRecognition always requires network (Google servers), so offline we
+// record audio normally and inform the user it will be transcribed when online.
 
 function startOfflineRecording() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-        setStatus(STRINGS.errorMic, 'error');
-        return;
-    }
-    isOfflineMode = true;
-    offlineRecognition = new SpeechRecognition();
-    offlineRecognition.lang = 'ar';
-    offlineRecognition.continuous = true;
-    offlineRecognition.interimResults = true;
-    let fullTranscript = '';
-
-    offlineRecognition.onresult = (event) => {
-        let interim = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            const text = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-                fullTranscript += text + ' ';
-            } else {
-                interim = text;
-            }
-        }
-        setStatus(STRINGS.offline + ' ' + (interim || fullTranscript), 'recording');
-    };
-
-    offlineRecognition.onerror = (event) => {
-        const msg = event.error === 'network' ? 'Voice requires internet on this browser. Use Chrome/Edge.' : STRINGS.errorConnection + ': ' + event.error;
-        stopOfflineRecording(msg);
-    };
-
-    offlineRecognition.onend = () => {
-        if (isOfflineMode && fullTranscript.trim()) {
-            fillFieldsOffline(fullTranscript.trim());
-        }
-    };
-
-    try { offlineRecognition.start(); } catch(e) { stopOfflineRecording('Mic access or speech engine error'); }
-    recordBtn.classList.add('recording');
-    recordBtn.innerHTML = STRINGS.btnStop;
-    setStatus(STRINGS.offline, 'recording');
+    // SpeechRecognition requires Google servers, cannot work offline.
+    // Use standard MediaRecorder directly. startRecording() sets all UI state.
+    isOfflineMode = false;
+    startRecording();
 }
+
 
 function stopOfflineRecording(errorMessage = null) {
     if (offlineRecognition) {
@@ -392,20 +372,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Press ESC to cancel without processing
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && isRecording) {
-             if (mediaRecorder) {
-                 // Prevent the normal onstop data send
-                 mediaRecorder.onstop = function () {
-                     if (mediaRecorder.stream) mediaRecorder.stream.getTracks().forEach(t => t.stop());
-                 };
-                 mediaRecorder.stop();
-             }
-             isRecording = false;
-             recordBtn.classList.remove('recording');
-        recordBtn.innerHTML = STRINGS.btnRecord;
-             setStatus('Cancelled', 'error');
-             setTimeout(resetStatusUI, 3000);
+            if (mediaRecorder) {
+                // Prevent the normal onstop data send
+                mediaRecorder.onstop = function () {
+                    if (mediaRecorder.stream) mediaRecorder.stream.getTracks().forEach(t => t.stop());
+                };
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            recordBtn.classList.remove('recording');
+            recordBtn.innerHTML = STRINGS.btnRecord;
+            setStatus('Cancelled', 'error');
+            setTimeout(resetStatusUI, 3000);
         }
     });
 });
