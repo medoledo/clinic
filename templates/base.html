@@ -40,7 +40,7 @@
         }
     </style>
     <meta name="description" content="El-Basma Clinic — Doctor Visit Records Management System" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{% static 'js/tailwind.js' %}"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -65,7 +65,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
         rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="{% static 'css/flatpickr.min.css' %}">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -437,7 +437,7 @@
 
 <body class="min-h-screen">
 
-    <div id="offline-banner">⚠️ No internet connection — visits are being saved locally</div>
+    <div id="offline-banner" class="flex justify-between items-center px-4"><span>⚠️ No internet connection — visits are being saved locally</span><button onclick="this.parentElement.style.display='none'" class="text-white hover:text-gray-200 text-2xl font-bold">&times;</button></div>
     <div id="online-banner"> Connected — syncing saved visits...</div>
 
     {% if user.is_authenticated %}
@@ -695,18 +695,18 @@
         <img id="lightbox-img" src="" alt="Full size" onclick="event.stopPropagation()" />
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="{% static 'js/flatpickr.js' %}"></script>
     <script src="{% static 'js/offline.js' %}"></script>
     <script src="{% static 'js/shortcuts.js' %}"></script>
     <script>
         // Auto dismiss messages after 5 seconds
-        setTimeout(() => {
+        setTimeout(() => { // auto-dismiss alerts
             document.querySelectorAll('[data-alert]').forEach(el => {
                 el.style.transition = 'opacity .5s';
                 el.style.opacity = '0';
                 setTimeout(() => el.remove(), 500);
             });
-        }, 5000);
+        }, 3000);
         function openLightbox(src) {
             document.getElementById('lightbox-img').src = src;
             document.getElementById('lightbox').classList.add('active');

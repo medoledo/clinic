@@ -124,7 +124,7 @@
         const el = document.getElementById('sync-progress');
         if (el) { el.textContent = msg; el.classList.remove('hidden'); }
         if (onlineBanner) { onlineBanner.textContent = msg; onlineBanner.style.display = 'block'; }
-        setTimeout(() => { if (onlineBanner) onlineBanner.style.display = 'none'; }, 4000);
+        setTimeout(() => { if (onlineBanner) onlineBanner.style.display = 'none'; }, 3000);
     }
     function hideSyncProgress() {
         const el = document.getElementById('sync-progress');
@@ -159,7 +159,7 @@
     }
 
     function setOffline() {
-        if (offlineBanner) offlineBanner.style.display = 'block';
+        if (offlineBanner) { offlineBanner.style.display = 'block'; setTimeout(() => { offlineBanner.style.display = 'none'; }, 3000); }
         if (onlineBanner) onlineBanner.style.display = 'none';
         [networkDot, networkDotTop].forEach(d => {
             if (d) { d.classList.remove('bg-success'); d.classList.add('bg-danger'); }

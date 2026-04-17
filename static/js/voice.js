@@ -115,7 +115,7 @@ function stopRecording() {
         isRecording = false;
         recordBtn.classList.remove('recording');
         recordBtn.innerHTML = STRINGS.btnRecord;
-        setStatus(STRINGS.processing, 'loading');
+        if (errorMessage) { setStatus(errorMessage, 'error'); setTimeout(() => setStatus('', 'info'), 5000); } else { setStatus(STRINGS.processing, 'loading'); }
     }
 }
 
@@ -315,8 +315,8 @@ function startOfflineRecording() {
     };
 
     offlineRecognition.onerror = (event) => {
-        setStatus(STRINGS.errorConnection + ': ' + event.error, 'error');
-        stopOfflineRecording();
+        const msg = event.error === 'network' ? 'Voice requires internet on this browser. Use Chrome/Edge.' : STRINGS.errorConnection + ': ' + event.error;
+        stopOfflineRecording(msg);
     };
 
     offlineRecognition.onend = () => {
@@ -325,20 +325,20 @@ function startOfflineRecording() {
         }
     };
 
-    offlineRecognition.start();
+    try { offlineRecognition.start(); } catch(e) { stopOfflineRecording('Mic access or speech engine error'); }
     recordBtn.classList.add('recording');
     recordBtn.innerHTML = STRINGS.btnStop;
     setStatus(STRINGS.offline, 'recording');
 }
 
-function stopOfflineRecording() {
+function stopOfflineRecording(errorMessage = null) {
     if (offlineRecognition) {
         isOfflineMode = false;
         offlineRecognition.stop();
         offlineRecognition = null;
         recordBtn.classList.remove('recording');
         recordBtn.innerHTML = STRINGS.btnRecord;
-        setStatus(STRINGS.processing, 'loading');
+        if (errorMessage) { setStatus(errorMessage, 'error'); setTimeout(() => setStatus('', 'info'), 5000); } else { setStatus(STRINGS.processing, 'loading'); }
     }
 }
 
