@@ -1,51 +1,65 @@
-```
-# Compiled and build artifacts
-*.pyc
+# Python
 __pycache__/
-*.o
-*.obj
-*.exe
-*.dll
+*.py[cod]
+*$py.class
 *.so
-*.a
-*.out
-
-# Dependencies
-.venv/
-venv/
-node_modules/
+*.egg
+*.egg-info/
 dist/
 build/
-target/
-.gradle/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
 
-# Logs and temp files
+# Virtual Environment (never commit venvs)
+venv/
+env/
+ENV/
+.venv/
+
+# Django
 *.log
-*.tmp
-*.swp
-*.swo
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+static_root/
 
-# Environment
+# Secrets & env files
 .env
-.env.local
-*.env.*
+.env.*
+*.env
+secrets.py
 
-# Editors
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# System files
 .DS_Store
 Thumbs.db
 
 # Coverage
-coverage/
-htmlcov/
 .coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
 
-# Cache directories
-.mypy_cache/
-.pytest_cache/
-```
+# Migrations (keep migrations in version control for Django)
+# Do NOT add migrations/ here
+
+# Node / Tailwind (if added later)
+node_modules/
+npm-debug.log
+
+# OS
+.DS_Store
+*.bak
+*.tmp
