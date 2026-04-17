@@ -177,12 +177,14 @@
         offlineCloseBtn.addEventListener('click', () => {
             sessionStorage.setItem('offlineBannerClosed', '1');
             if (offlineBanner) offlineBanner.style.display = 'none';
+            clearTimeout(offlineBannerTimer); // Clear timer when manually closed
         });
     }
     const onlineCloseBtn = document.getElementById('online-banner-close');
     if (onlineCloseBtn) {
         onlineCloseBtn.addEventListener('click', () => {
             if (onlineBanner) onlineBanner.style.display = 'none';
+            clearTimeout(onlineBannerTimer); // Clear timer when manually closed
         });
     }
 

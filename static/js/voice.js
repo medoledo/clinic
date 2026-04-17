@@ -306,19 +306,20 @@ async function checkAllFieldsForSuggestions(fields) {
 function startOfflineRecording() {
     // SpeechRecognition requires Google servers, cannot work offline.
     // Use standard MediaRecorder directly. startRecording() sets all UI state.
-    isOfflineMode = false;
+    isOfflineMode = true;
     startRecording();
 }
 
 
-function stopOfflineRecording(errorMessage = null) {
-    if (offlineRecognition) {
+function stopOfflineRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
         isOfflineMode = false;
-        offlineRecognition.stop();
-        offlineRecognition = null;
         recordBtn.classList.remove('recording');
         recordBtn.innerHTML = STRINGS.btnRecord;
-        if (errorMessage) { setStatus(errorMessage, 'error'); setTimeout(() => setStatus('', 'info'), 5000); } else { setStatus(STRINGS.processing, 'loading'); }
+        setStatus(STRINGS.offlineDone, 'warning');
+        setTimeout(resetStatusUI, 5000);
     }
 }
 

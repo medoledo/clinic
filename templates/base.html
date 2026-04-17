@@ -441,20 +441,20 @@
         style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:9999; min-width:320px; max-width:90%; padding:16px 20px; border-radius:12px; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);"
         class="bg-red-500 text-white font-medium text-center">
         <div class="relative">
-            <span id="offline-banner-text" class="pr-6">&#9888;&#65039; No internet connection &#8212; visits are being saved locally</span>
+            <span id="offline-banner-text" class="pr-8">&#9888;&#65039; No internet connection &#8212; visits are being saved locally</span>
             <button id="offline-banner-close"
-                style="position:absolute; top:-12px; right:-10px;"
-                class="hover:text-gray-200 text-3xl font-light p-2">&times;</button>
+                style="position:absolute; top:50%; right:8px; transform:translateY(-50%);"
+                class="hover:text-gray-200 text-2xl font-light p-1 leading-none">&times;</button>
         </div>
     </div>
     <div id="online-banner"
         style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:9999; min-width:320px; max-width:90%; padding:16px 20px; border-radius:12px; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);"
         class="bg-emerald-500 text-white font-medium text-center">
         <div class="relative">
-            <span id="online-banner-text" class="pr-6">&#10003; Back online &#8212; Syncing pending visits...</span>
+            <span id="online-banner-text" class="pr-8">&#10003; Back online &#8212; Syncing pending visits...</span>
             <button id="online-banner-close"
-                style="position:absolute; top:-12px; right:-10px;"
-                class="hover:text-gray-200 text-3xl font-light p-2">&times;</button>
+                style="position:absolute; top:50%; right:8px; transform:translateY(-50%);"
+                class="hover:text-gray-200 text-2xl font-light p-1 leading-none">&times;</button>
         </div>
     </div>
 
@@ -715,7 +715,7 @@
     </div>
 
     <script src="{% static 'js/flatpickr.js' %}"></script>
-    <script src="{% static 'js/offline.js' %}"></script>
+    <script src="{% static 'js/offline.js' %}?v=1.1"></script>
     <script src="{% static 'js/shortcuts.js' %}"></script>
     <script>
         // Auto dismiss messages after 5 seconds
