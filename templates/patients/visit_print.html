@@ -45,17 +45,25 @@
             overflow: hidden;
         }
 
+        
         /* ── Watermark ── */
         .watermark {
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
-            opacity: 0.055;
+            transform: translate(-50%, -50%) rotate(-35deg);
+            opacity: 0.045;
             pointer-events: none;
             z-index: 0;
+            white-space: nowrap;
+            font-size: 88px;
+            font-weight: 900;
+            color: var(--green);
+            direction: rtl;
+            font-family: 'Noto Sans Arabic', sans-serif;
+            text-align: center;
         }
-        .watermark svg { width: 220px; height: 264px; }
+
 
         /* All content sits above watermark */
         .page-content { position: relative; z-index: 1; display: flex; flex-direction: column; flex: 1; }
@@ -328,15 +336,7 @@
     <div class="page-wrapper">
 
         <!-- Watermark: BC logo, very faint, centered -->
-        <div class="watermark" aria-hidden="true"><svg viewBox="0 0 260 310" xmlns="http://www.w3.org/2000/svg">
-    <rect x="0" y="0" width="260" height="210" rx="4" fill="#1a5c2e"/>
-    <rect x="0" y="0" width="260" height="22" fill="#c0392b"/>
-    <rect x="0" y="188" width="260" height="22" fill="#c0392b"/>
-    <text x="20" y="165" font-family="Georgia, serif" font-size="130" font-weight="bold" fill="white">B</text>
-    <text x="135" y="165" font-family="Georgia, serif" font-size="130" font-weight="bold" fill="white">C</text>
-    <text x="130" y="245" font-family="'Noto Sans Arabic', sans-serif" font-size="22" font-weight="900" fill="#1a5c2e" text-anchor="middle" direction="rtl">&#1575;&#1604;&#1576;&#1587;&#1605;&#1577; &#1603;&#1604;&#1610;&#1606;&#1603;</text>
-    <text x="130" y="275" font-family="Arial, sans-serif" font-size="14" font-weight="800" fill="#c0392b" text-anchor="middle" letter-spacing="1">EL-BASMA CLINIC</text>
-</svg></div>
+        <div class="watermark" aria-hidden="true">&#1583;. &#1605;&#1581;&#1605;&#1583; &#1605;&#1581;&#1605;&#1608;&#1583; &#1576;&#1587;&#1610;&#1608;&#1606;&#1610;</div>
 
         <div class="page-content">
 
