@@ -491,16 +491,7 @@
                 </svg>
                 Upcoming
             </a>
-            <a href="{% url 'pending_visits' %}"
-                class="sidebar-link {% if request.resolver_match.url_name == 'pending_visits' %}active{% endif %}">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Pending
-                <span id="pending-badge"
-                    class="hidden ml-auto bg-warning text-white text-xs font-bold px-2 py-0.5 rounded-full"></span>
-            </a>
+            
             {% elif user.profile.role == 'admin' %}
             <a href="{% url 'admin_dashboard' %}"
                 class="sidebar-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
@@ -560,8 +551,7 @@
                         class="text-sm font-medium {% if request.resolver_match.url_name == 'patient_list' %}text-primary{% else %}text-muted hover:text-textmain{% endif %}">Patients</a>
                     <a href="{% url 'upcoming_visits' %}"
                         class="text-sm font-medium {% if request.resolver_match.url_name == 'upcoming_visits' %}text-primary{% else %}text-muted hover:text-textmain{% endif %}">Upcoming</a>
-                    <a href="{% url 'pending_visits' %}"
-                        class="text-sm font-medium {% if request.resolver_match.url_name == 'pending_visits' %}text-primary{% else %}text-muted hover:text-textmain{% endif %}">Pending</a>
+                    
                     {% elif user.profile.role == 'admin' %}
                     <a href="{% url 'admin_dashboard' %}"
                         class="text-sm font-medium {% if request.resolver_match.url_name == 'admin_dashboard' %}text-primary{% else %}text-muted hover:text-textmain{% endif %}">Dashboard</a>
@@ -641,15 +631,7 @@
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>Upcoming
             </a>
-            <a href="{% url 'pending_visits' %}"
-                class="relative flex flex-col items-center gap-0.5 text-slate-400 hover:text-white px-3 py-2 rounded-lg text-xs">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>Pending
-                <span id="pending-badge-mobile"
-                    class="hidden absolute top-1 right-1 bg-warning text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center text-[10px]"></span>
-            </a>
+            
             {% elif user.profile.role == 'admin' %}
             <a href="{% url 'admin_dashboard' %}"
                 class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white px-3 py-2 rounded-lg text-xs">

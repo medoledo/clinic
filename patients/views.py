@@ -9,7 +9,6 @@ from django.utils.dateparse import parse_date, parse_datetime
 from django.core.paginator import Paginator
 from django.db.models import Count, Max, Q
 from django.views.decorators.http import require_GET, require_POST
-from django.views.decorators.csrf import csrf_exempt
 from django.core.cache import cache
 from django.contrib.auth.decorators import login_required
 
@@ -649,70 +648,6 @@ def upcoming_visits(request):
 # ─────────────────────────── Pending Visits ───────────────────────────────────
 
 @doctor_required
-def pending_visits(request):
-    """Renders the pending (offline) visits page — actual data lives in IndexedDB."""
-    return render(request, 'patients/pending_visits.html')
-
-
-# ─────────────────────────── Sync Offline Visit ───────────────────────────────
-
-@doctor_required
-@csrf_exempt
-def sync_offline_visit(request):
-    """Receives an offline-saved visit from the JS service worker and persists it."""
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed.'}, status=405)
-
-    # CSRF is enforced by Django's CsrfViewMiddleware on POST requests.
-    # The JS layer must include the csrfmiddlewaretoken header.
-    try:
-        data = json.loads(request.body)
-    except (ValueError, KeyError):
-        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
-
-    patient_id = data.get('patient_id')
-    if not patient_id:
-        return JsonResponse({'error': 'patient_id is required.'}, status=400)
-
-    # Ensure the patient belongs to the logged-in doctor (ownership check)
-    patient = get_object_or_404(Patient, pk=patient_id, doctor=request.user)
-
-    chief_complaint = str(data.get('chief_complaint', '')).strip()
-    if not chief_complaint:
-        return JsonResponse({'error': 'chief_complaint is required.'}, status=400)
-
-    visit_date_str = data.get('visit_date', '')
-    visit_date = parse_datetime(visit_date_str) if visit_date_str else None
-    if visit_date is None:
-        visit_date = timezone.now()
-
-    visit = Visit.objects.create(
-        patient=patient,
-        doctor=request.user,
-        visit_date=visit_date,
-        chief_complaint=chief_complaint,
-        symptoms=data.get('symptoms') or None,
-        diagnosis=data.get('diagnosis') or None,
-        treatment=data.get('treatment') or None,
-        blood_pressure=str(data.get('blood_pressure', '')),
-        doctor_notes=data.get('doctor_notes') or None,
-        temperature=_safe_decimal(data.get('temperature')),
-        pulse=_safe_int(data.get('pulse')),
-        weight=_safe_decimal(data.get('weight')),
-        next_checkup_date=data.get('next_checkup_date') or None,
-    )
-
-    return JsonResponse({
-        'success': True,
-        'visit_id': visit.pk,
-        'offline_id': data.get('offline_id'),
-    })
-
-
-# ─────────────────────────── Check Suggestions ────────────────────────────────
-
-@doctor_required
-@require_POST
 def check_suggestions(request):
     """
     Receives transcribed text, applies personal corrections,
