@@ -657,6 +657,7 @@ def pending_visits(request):
 # ─────────────────────────── Sync Offline Visit ───────────────────────────────
 
 @doctor_required
+@csrf_exempt
 def sync_offline_visit(request):
     """Receives an offline-saved visit from the JS service worker and persists it."""
     if request.method != 'POST':

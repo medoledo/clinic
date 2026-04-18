@@ -6,7 +6,7 @@
     'use strict';
 
     const DB_NAME = 'meditrack_offline';
-    const DB_VERSION = 2;
+    const DB_VERSION = 3;
     const STORE_NAME = 'pending_visits';
 
     // ── UI Elements ──
@@ -54,14 +54,17 @@
         });
     }
 
-    async function getAllPending() {
+        async function getAllPending() {
         const db = await getDB();
         return new Promise((resolve, reject) => {
             const tx = db.transaction(STORE_NAME, 'readonly');
             const store = tx.objectStore(STORE_NAME);
-            const idx = store.index('synced');
-            const req = idx.getAll(false);
-            req.onsuccess = () => resolve(req.result);
+            const req = store.getAll();
+            req.onsuccess = () => {
+                const all = req.result || [];
+                const pending = all.filter(v => v.synced === false);
+                resolve(pending);
+            };
             req.onerror = () => reject(req.error);
         });
     }
@@ -94,7 +97,7 @@
 
         for (const visit of pending) {
             try {
-                const csrfToken = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+                const csrfToken = window.CSRF_TOKEN || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
                 const res = await fetch('/sync-offline-visit/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },

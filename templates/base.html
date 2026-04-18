@@ -704,8 +704,9 @@
         <img id="lightbox-img" src="" alt="Full size" onclick="event.stopPropagation()" />
     </div>
 
+    <script>window.CSRF_TOKEN = '{{ csrf_token }}';</script>
     <script src="{% static 'js/flatpickr.js' %}"></script>
-    <script src="{% static 'js/offline.js' %}?v=1.1"></script>
+    <script src="{% static 'js/offline.js' %}?v=1.2"></script>
     <script src="{% static 'js/shortcuts.js' %}"></script>
     <script>
         // Auto dismiss messages after 5 seconds
