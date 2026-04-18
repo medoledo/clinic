@@ -161,8 +161,11 @@
 
     </style>
 
-    <div class="card p-5 border-l-4 border-l-blue-500 shadow-sm col-span-1 md:col-span-2 bg-blue-50/30">
-        <div class="visit-recorder"
+    
+    <!-- Sticky Recorder -->
+    <div class="md:sticky md:top-2 z-30 mb-6">
+        <div class="card !p-4 border-l-4 border-l-blue-500 shadow-lg bg-white/95 backdrop-blur-sm">
+            <div class="visit-recorder"
              data-status-listening="🎤 جاري الاستماع... تكلم الآن"
              data-status-listening-en="🎤 Listening... Speak now"
              data-status-processing="⏳ جاري التحليل..."
@@ -196,16 +199,21 @@
             </button>
             <span id="voice-status" class="voice-status">Ready to record</span>
         </div>
-
-        <div class="recording-guide">
+        </div>
+    </div>
+    
+    <!-- Non-sticky Recording Guide -->
+    <div class="mb-6">
+        <div class="card !p-4 border-l-4 border-l-blue-400/50 shadow-sm bg-gray-50/50">
+            <div class="recording-guide">
             <strong>نصيحة للتسجيل الذكي:</strong><br/>
             قل: <strong>"شكوى"</strong> ثم ما يشتكي منه المريض، <strong>"تشخيص"</strong> ثم التشخيص، 
             <strong>"علاج"</strong> ثم وصفة العلاج، <strong>"أعراض"</strong> ثم الأعراض،
             <strong>"ملاحظات"</strong> ثم أية ملاحظات خاصة، وللعلامات الحيوية: <strong>"حرارة"</strong>، <strong>"ضغط"</strong>، <strong>"نبض"</strong>، و<strong>"وزن"</strong>، و<strong>"استشارة"</strong> للموعد القادم.
         </div>
+        </div>
     </div>
-
-        <!-- Visit Date & Grid Start -->
+    <!-- Visit Date & Grid Start -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="card p-5 col-span-1">
                 <label class="form-label">Visit Date &amp; Time</label>
@@ -434,10 +442,34 @@
             // native date input used for next_checkup_date
         }
     });
+
+    // Shortcut for confirming the save modal with Enter
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !document.getElementById('confirm-modal').classList.contains('hidden')) {
+            e.preventDefault();
+            submitVisit();
+        }
+    });
 </script>
 
-<script src="{% static 'js/voice.js' %}?v=1.6"></script>
-<script src="{% static 'js/upload.js' %}"></script>
+<script src="{% static 'js/voice.js' %}?v=1.6">
+    // Shortcut for confirming the save modal with Enter
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !document.getElementById('confirm-modal').classList.contains('hidden')) {
+            e.preventDefault();
+            submitVisit();
+        }
+    });
+</script>
+<script src="{% static 'js/upload.js' %}">
+    // Shortcut for confirming the save modal with Enter
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !document.getElementById('confirm-modal').classList.contains('hidden')) {
+            e.preventDefault();
+            submitVisit();
+        }
+    });
+</script>
 <script>
     // ── Links Manager ──
     function addLinkField() {
@@ -546,5 +578,13 @@
         try { localStorage.removeItem(DRAFT_KEY); } catch (e) { }
         document.getElementById('visit-form').submit();
     }
+
+    // Shortcut for confirming the save modal with Enter
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !document.getElementById('confirm-modal').classList.contains('hidden')) {
+            e.preventDefault();
+            submitVisit();
+        }
+    });
 </script>
 {% endblock %}

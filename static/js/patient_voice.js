@@ -22,7 +22,7 @@ const PATIENT_STRINGS = {
     errorConnection: '❌ خطأ في الاتصال بالخادم',
     errorConnectionEn: '❌ Server connection error',
     offline: '🎤 وضع بدون إنترنت — جاري الاستماع...',
-    offlineEn: '🎤 Offline mode — Listening...',
+    offlineEn: 'Connect to the internet first',
     offlineDone: '⚠️ تم التعبيئة بوضع بدون إنترنت — الدقة أقل من المعتاد',
     offlineDoneEn: '⚠️ Offline processing complete — lower accuracy',
     empty: '❌ لم يتم التعرف على أي كلام',
@@ -236,7 +236,8 @@ window.initPatientVoice = function() {
     patientRecordBtn.addEventListener('click', () => {
         if (!isPatientRecording && !isPatientOfflineMode) {
             if (!navigator.onLine) {
-                startPatientOfflineRecording();
+                setPatientStatus(PATIENT_STRINGS.offlineEn, 'error');
+                return;
             } else {
                 startPatientRecording();
             }
