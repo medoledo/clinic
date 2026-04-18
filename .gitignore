@@ -65,3 +65,7 @@ npm-debug.log
 *.tmp
 # Log directory
 logs/
+
+# SQLite WAL mode journals (auto-deleted on server shutdown)
+*.sqlite3-shm
+*.sqlite3-wal

@@ -1,4 +1,6 @@
 import os
+import csv
+import shutil
 import re
 import json
 from django.shortcuts import render, redirect, get_object_or_404
@@ -35,18 +37,26 @@ def dashboard(request):
     first_of_month = today.replace(day=1)
     doctor = request.user
 
-    total_patients = Patient.objects.filter(doctor=doctor).count()
-    today_visits = Visit.objects.filter(doctor=doctor, visit_date__date=today).count()
-    month_visits = Visit.objects.filter(
-        doctor=doctor,
-        visit_date__date__gte=first_of_month,
-        visit_date__date__lte=today,
-    ).count()
+    cache_key = f'dashboard_counts_{doctor.id}'
+    counts = cache.get(cache_key)
+    if counts is None:
+        counts = {
+            'total_patients': Patient.objects.filter(doctor=doctor).count(),
+            'today_visits': Visit.objects.filter(
+                doctor=doctor, visit_date__date=today
+            ).count(),
+            'month_visits': Visit.objects.filter(
+                doctor=doctor,
+                visit_date__date__gte=first_of_month,
+                visit_date__date__lte=today,
+            ).count(),
+        }
+        cache.set(cache_key, counts, 60)
 
     context = {
-        'total_patients': total_patients,
-        'today_visits': today_visits,
-        'month_visits': month_visits,
+        'total_patients': counts['total_patients'],
+        'today_visits': counts['today_visits'],
+        'month_visits': counts['month_visits'],
     }
     return render(request, 'patients/dashboard.html', context)
 
@@ -60,25 +70,24 @@ def search_patients(request):
     results = []
 
     if len(query) >= 2:
-        # Single query with Q objects instead of Python OR on two querysets
+        # Single query with annotation — eliminates N+1 from p.last_visit in loop
         patients = (
             Patient.objects
             .filter(doctor=request.user)
             .filter(Q(name__icontains=query) | Q(phone__icontains=query))
             .only('id', 'name', 'phone', 'gender', 'date_of_birth')
+            .annotate(last_visit_dt=Max('visits__visit_date'))
             .distinct()[:10]
         )
 
         for p in patients:
-            # last_visit is acceptable here — small bounded result set (max 10)
-            last_visit = p.last_visit
             results.append({
                 'id': p.id,
                 'name': p.name,
                 'phone': p.phone,
                 'age': p.age,
                 'last_visit_date': (
-                    last_visit.visit_date.strftime('%Y-%m-%d') if last_visit else None
+                    p.last_visit_dt.strftime('%Y-%m-%d') if p.last_visit_dt else None
                 ),
             })
 
@@ -108,7 +117,9 @@ def patient_list(request):
     # Optional: total visits for the filtered patients
     total_visits_count = Visit.objects.filter(patient__in=qs).count()
 
-    paginator = Paginator(qs, 10)  # Changed to 10 for easier visual testing
+    paginator = Paginator(qs, 10)
+    # Reuse the already-computed count so the Paginator doesn't issue a duplicate COUNT(*)
+    paginator.count = total_patients_count
     page_num = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_num)
 
@@ -661,13 +672,16 @@ def upcoming_visits(request):
         if v.patient_id not in tomorrow_visits_map:
             tomorrow_visits_map[v.patient_id] = v
 
+    # Evaluate once as lists so len() reuses the already-fetched data (no extra COUNT queries)
+    today_list = list(today_checkups)
+    tomorrow_list = list(tomorrow_checkups)
     context = {
-        'today_checkups': today_checkups,
-        'tomorrow_checkups': tomorrow_checkups,
+        'today_checkups': today_list,
+        'tomorrow_checkups': tomorrow_list,
         'today_visits_map': today_visits_map,
         'tomorrow_visits_map': tomorrow_visits_map,
-        'today_count': today_checkups.count(),
-        'tomorrow_count': tomorrow_checkups.count(),
+        'today_count': len(today_list),
+        'tomorrow_count': len(tomorrow_list),
     }
     return render(request, 'patients/upcoming_visits.html', context)
 
@@ -1038,3 +1052,102 @@ def transcribe_patient_info(request):
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.unlink(tmp_path)
+
+
+# ─────────────────────────── Export / Health / Keep-alive ────────────────────
+
+@login_required
+def export_patients_csv(request):
+    """#6 — Export all doctor patients as a UTF-8 CSV download (with BOM for Excel)."""
+    from django.http import HttpResponse
+
+    doctor = getattr(request.user, 'doctor_profile', None)
+    if not doctor:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
+    patients = (
+        Patient.objects
+        .filter(doctor=request.user)
+        .annotate(
+            visit_count=Count('visits'),
+            last_visit_dt=Max('visits__visit_date'),
+        )
+        .order_by('name')
+    )
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = 'attachment; filename="patients.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Name', 'Phone', 'Gender', 'Date of Birth', 'Age', 'Total Visits', 'Last Visit'])
+    for p in patients.iterator():
+        writer.writerow([
+            p.name,
+            p.phone or '',
+            p.get_gender_display(),
+            p.date_of_birth or '',
+            p.age or '',
+            p.visit_count,
+            p.last_visit_dt.date() if p.last_visit_dt else '',
+        ])
+    return response
+
+
+def health_check(request):
+    """#7 — System health page: DB, Groq API key, disk space."""
+    import shutil as _shutil
+    from django.conf import settings as django_settings
+    from django.db import connection as db_conn
+
+    results = {}
+
+    # 1. Database
+    try:
+        with db_conn.cursor() as cur:
+            cur.execute('SELECT 1')
+        results['database'] = {'status': 'ok', 'message': 'Connected'}
+    except Exception as exc:
+        results['database'] = {'status': 'error', 'message': str(exc)}
+
+    # 2. Groq API key
+    api_key = getattr(django_settings, 'GROQ_API_KEY', '') or ''
+    if api_key:
+        results['groq_api'] = {'status': 'ok', 'message': 'API key is set'}
+    else:
+        results['groq_api'] = {'status': 'warning', 'message': 'GROQ_API_KEY is not configured — transcription disabled'}
+
+    # 3. Disk space
+    try:
+        usage = _shutil.disk_usage(django_settings.BASE_DIR)
+        free_mb = usage.free // (1024 * 1024)
+        total_mb = usage.total // (1024 * 1024)
+        pct_used = round((usage.used / usage.total) * 100, 1)
+        if free_mb < 500:
+            disk_status = 'warning'
+            disk_msg = f'Low disk space: {free_mb} MB free of {total_mb} MB ({pct_used}% used)'
+        else:
+            disk_status = 'ok'
+            disk_msg = f'{free_mb} MB free of {total_mb} MB ({pct_used}% used)'
+        results['disk'] = {'status': disk_status, 'message': disk_msg}
+    except Exception as exc:
+        results['disk'] = {'status': 'error', 'message': str(exc)}
+
+    overall = 'ok' if all(v['status'] == 'ok' for v in results.values()) else 'degraded'
+
+    if request.headers.get('Accept', '').startswith('application/json') or request.GET.get('format') == 'json':
+        from django.http import JsonResponse
+        return JsonResponse({'status': overall, 'checks': results})
+
+    return render(request, 'patients/health.html', {
+        'overall': overall,
+        'checks': results,
+    })
+
+
+@login_required
+@require_GET
+def keep_alive(request):
+    """#9 — Lightweight endpoint to refresh the session (called from JS timeout banner)."""
+    request.session.modified = True
+    return JsonResponse({'ok': True})

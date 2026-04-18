@@ -131,4 +131,73 @@
     function escHtml(str) {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
+
+    // ── #12 Upload progress bar ──────────────────────────────────────────────
+    // Intercepts the parent form's submit and shows a progress bar while
+    // the multipart upload is in progress, preventing double-click submissions.
+    (function initUploadProgress() {
+        var form = document.getElementById('visit-form');
+        if (!form) return;
+
+        // Create progress bar container
+        var progressWrap = document.createElement('div');
+        progressWrap.id = 'upload-progress-wrap';
+        progressWrap.style.cssText = 'display:none;margin-top:12px;';
+        progressWrap.innerHTML =
+            '<div style="font-size:13px;color:#475569;font-weight:600;margin-bottom:6px;" id="upload-progress-label">Uploading files...</div>' +
+            '<div style="background:#E2E8F0;border-radius:8px;height:10px;overflow:hidden;">' +
+              '<div id="upload-progress-bar" style="height:100%;background:#2563EB;width:0%;transition:width .2s;border-radius:8px;"></div>' +
+            '</div>' +
+            '<div style="font-size:12px;color:#64748B;margin-top:4px;" id="upload-progress-pct">0%</div>';
+
+        var dropZoneParent = dropZone ? dropZone.parentElement : null;
+        if (dropZoneParent) dropZoneParent.appendChild(progressWrap);
+
+        // Only intercept if there are files selected
+        form.addEventListener('submit', function (e) {
+            var fileItems = document.querySelectorAll('#file-list .file-item');
+            if (!fileItems.length) return; // no files — let normal submit proceed
+
+            e.preventDefault();
+            var submitBtn = document.getElementById('save-visit-btn');
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.classList.add('opacity-75'); }
+
+            progressWrap.style.display = 'block';
+
+            var fd = new FormData(form);
+            var xhr = new XMLHttpRequest();
+
+            xhr.upload.onprogress = function (ev) {
+                if (ev.lengthComputable) {
+                    var pct = Math.round((ev.loaded / ev.total) * 100);
+                    document.getElementById('upload-progress-bar').style.width = pct + '%';
+                    document.getElementById('upload-progress-pct').textContent = pct + '%';
+                    if (pct === 100) {
+                        document.getElementById('upload-progress-label').textContent = 'Processing...';
+                    }
+                }
+            };
+
+            xhr.onload = function () {
+                // Server redirect on success — follow it
+                if (xhr.status >= 200 && xhr.status < 400) {
+                    window.location.href = xhr.responseURL || '/dashboard/';
+                } else {
+                    progressWrap.style.display = 'none';
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.classList.remove('opacity-75'); }
+                    alert('Upload failed. Please try again.');
+                }
+            };
+
+            xhr.onerror = function () {
+                progressWrap.style.display = 'none';
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.classList.remove('opacity-75'); }
+                alert('Network error during upload. Please check your connection.');
+            };
+
+            xhr.open('POST', form.action || window.location.pathname);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.send(fd);
+        });
+    })();
 })();

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}System Health &mdash; El-Basma Clinic{% endblock %}
+{% block page_title %}System Health{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-4">
+
+  <!-- Overall status -->
+  <div class="card p-5 flex items-center gap-4 {% if overall == 'ok' %}border-l-4 border-l-success{% else %}border-l-4 border-l-warning{% endif %}">
+    {% if overall == 'ok' %}
+    <svg class="w-8 h-8 text-success flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <div><div class="font-bold text-success text-lg">All Systems Operational</div>
+    <div class="text-sm text-muted">Everything is running normally.</div></div>
+    {% else %}
+    <svg class="w-8 h-8 text-warning flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+    </svg>
+    <div><div class="font-bold text-warning text-lg">Some Issues Detected</div>
+    <div class="text-sm text-muted">Review the checks below.</div></div>
+    {% endif %}
+  </div>
+
+  <!-- Individual checks -->
+  {% for key, check in checks.items %}
+  <div class="card p-5 flex items-start gap-4">
+    {% if check.status == 'ok' %}
+    <span class="w-3 h-3 rounded-full bg-success flex-shrink-0 mt-1"></span>
+    {% elif check.status == 'warning' %}
+    <span class="w-3 h-3 rounded-full bg-warning flex-shrink-0 mt-1"></span>
+    {% else %}
+    <span class="w-3 h-3 rounded-full bg-danger flex-shrink-0 mt-1"></span>
+    {% endif %}
+    <div>
+      <div class="font-semibold text-textmain capitalize">{{ key|title }}</div>
+      <div class="text-sm text-muted mt-0.5">{{ check.message }}</div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="text-xs text-muted text-center pt-2">Checked at {{ request.session._session_key|default:"now" }} &mdash; <a href="?format=json" class="text-primary hover:underline">JSON</a></div>
+</div>
+{% endblock %}

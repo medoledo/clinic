@@ -146,7 +146,19 @@ async function sendRecording() {
             body: formData
         });
 
-        const data = await response.json();
+        let data;
+        try { data = await response.json(); } catch (_) { data = {}; }
+
+        if (response.status === 429) {
+            setStatus('&#128683; Voice transcription quota exceeded. You can still type the visit manually.', 'error');
+            setTimeout(resetStatusUI, 8000);
+            return;
+        }
+        if (response.status === 503 || (data.error && data.error.toLowerCase().includes('unavailable'))) {
+            setStatus('&#9888; Transcription service temporarily unavailable. Please type the visit manually.', 'error');
+            setTimeout(resetStatusUI, 8000);
+            return;
+        }
 
         if (data.success && data.fields) {
             fillFields(data.fields);

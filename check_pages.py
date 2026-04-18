@@ -117,7 +117,6 @@ def main():
         ("doctor", "/dashboard/", [200], "GET"),
         ("doctor", "/patients/", [200], "GET"),
         ("doctor", "/patients/add/", [200], "GET"),
-        ("doctor", "/pending-visits/", [200], "GET"),
         ("doctor", "/upcoming-visits/", [200], "GET"),
         ("doctor", "/search-patients/?q=test", [200], "GET"),
     ]

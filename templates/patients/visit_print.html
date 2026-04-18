@@ -313,6 +313,17 @@
             .content-section:last-of-type { margin-bottom: 0; }
         }
     </style>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 15mm 12mm;
+        }
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .no-print { display: none !important; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
 </head>
 
 <body>

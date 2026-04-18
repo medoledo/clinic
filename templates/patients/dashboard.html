@@ -43,6 +43,59 @@
     </div>
 </div>
 
+
+<!-- #15 Onboarding overlay (shows once per device via localStorage) -->
+<div id="onboarding-overlay"
+     style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:10000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:32px 36px;max-width:480px;width:90%;box-shadow:0 25px 50px rgba(0,0,0,.25);">
+        <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:36px;margin-bottom:8px;">&#128075;</div>
+            <h2 style="font-size:20px;font-weight:700;color:#0F172A;margin:0 0 6px;">Welcome to El-Basma Clinic</h2>
+            <p style="color:#64748B;font-size:14px;margin:0;">Here&rsquo;s a quick guide to get you started.</p>
+        </div>
+        <div style="space-y:12px;display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0;">
+                <span style="font-size:20px;flex-shrink:0;">&#128269;</span>
+                <div><div style="font-weight:600;color:#0F172A;font-size:14px;">Quick Patient Search</div>
+                <div style="color:#64748B;font-size:13px;">Type a name or phone number in the search box to instantly find patients.</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0;">
+                <span style="font-size:20px;flex-shrink:0;">&#128100;</span>
+                <div><div style="font-weight:600;color:#0F172A;font-size:14px;">Add a New Patient</div>
+                <div style="color:#64748B;font-size:13px;">Go to <strong>My Patients</strong> and click <strong>+ Add Patient</strong>. You can even dictate patient info by voice.</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0;">
+                <span style="font-size:20px;flex-shrink:0;">&#127908;</span>
+                <div><div style="font-weight:600;color:#0F172A;font-size:14px;">Voice-Record a Visit</div>
+                <div style="color:#64748B;font-size:13px;">Open a patient, click <strong>Add Visit</strong>, then press the microphone button to dictate the visit details.</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0;">
+                <span style="font-size:20px;flex-shrink:0;">&#128197;</span>
+                <div><div style="font-weight:600;color:#0F172A;font-size:14px;">Upcoming Visits</div>
+                <div style="color:#64748B;font-size:13px;">Check the <strong>Upcoming</strong> tab daily to see which patients have scheduled checkups.</div></div>
+            </div>
+        </div>
+        <button id="onboarding-close-btn"
+                onclick="closeOnboarding()"
+                style="margin-top:24px;width:100%;background:#2563EB;color:#fff;border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;">
+            Got it &mdash; Let&rsquo;s Start! &#127864;
+        </button>
+    </div>
+</div>
+<script>
+(function () {
+    var KEY = 'elbasma_onboarding_done';
+    if (!localStorage.getItem(KEY)) {
+        var overlay = document.getElementById('onboarding-overlay');
+        if (overlay) overlay.style.display = 'flex';
+    }
+    window.closeOnboarding = function () {
+        localStorage.setItem(KEY, '1');
+        var overlay = document.getElementById('onboarding-overlay');
+        if (overlay) overlay.style.display = 'none';
+    };
+})();
+</script>
 {% endblock %}
 
 {% block extra_js %}

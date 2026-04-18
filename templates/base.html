@@ -511,8 +511,7 @@
                     {{ user.username|first|upper }}</div>
                 <div class="min-w-0">
                     <div class="text-white text-xs font-semibold truncate">
-                        {% if user.doctor_profile %}{{ user.doctor_profile.full_name }}{% else %}{{
-                        user.get_full_name|default:user.username }}{% endif %}
+                        {% if user.doctor_profile %}{{ user.doctor_profile.full_name }}{% else %}{{ user.get_full_name|default:user.username }}{% endif %}
                     </div>
                     <div class="text-slate-400 text-xs">{{ user.profile.get_role_display }}</div>
                 </div>
@@ -749,6 +748,49 @@
             }
         });
     </script>
+
+    <!-- #9 Session timeout warning banner -->
+    {% if user.is_authenticated %}
+    <div id="session-warning-banner"
+         style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:10000;background:#F59E0B;color:#fff;padding:12px 20px;font-size:14px;font-weight:600;text-align:center;box-shadow:0 -2px 8px rgba(0,0,0,.15);">
+        <span id="session-warning-text">Your session will expire soon.</span>
+        <button onclick="keepSessionAlive()"
+                style="margin-left:16px;background:#fff;color:#92400E;border:none;border-radius:6px;padding:4px 14px;font-weight:700;cursor:pointer;">
+            Stay Logged In
+        </button>
+        <button onclick="document.getElementById('session-warning-banner').style.display='none'"
+                style="margin-left:8px;background:transparent;border:none;color:#fff;font-size:18px;cursor:pointer;opacity:.7;">&times;</button>
+    </div>
+    <script>
+    (function () {
+        var SESSION_MS = 86400 * 1000;
+        var WARN_BEFORE_MS = 5 * 60 * 1000;
+        var expiresAt = Date.now() + SESSION_MS;
+        var warned = false;
+        function tick() {
+            var remaining = expiresAt - Date.now();
+            if (!warned && remaining <= WARN_BEFORE_MS && remaining > 0) {
+                warned = true;
+                var min = Math.ceil(remaining / 60000);
+                document.getElementById('session-warning-text').textContent =
+                    'Your session expires in ' + min + ' minute' + (min !== 1 ? 's' : '') + '. Save your work!';
+                document.getElementById('session-warning-banner').style.display = 'block';
+            }
+        }
+        window.keepSessionAlive = function () {
+            fetch('/keep-alive/', { method: 'GET', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) {
+                    if (r.ok) {
+                        expiresAt = Date.now() + SESSION_MS;
+                        warned = false;
+                        document.getElementById('session-warning-banner').style.display = 'none';
+                    }
+                });
+        };
+        setInterval(tick, 30000);
+    })();
+    </script>
+    {% endif %}
 </body>
 
 </html>

@@ -22,4 +22,7 @@ urlpatterns = [
     path('check-suggestions/', views.check_suggestions, name='check_suggestions'),
     path('save-correction/', views.save_correction, name='save_correction'),
     path('check-suggestions-batch/', views.check_suggestions_batch, name='check_suggestions_batch'),
+    path('patients/export/', views.export_patients_csv, name='export_patients_csv'),
+    path('health/', views.health_check, name='health_check'),
+    path('keep-alive/', views.keep_alive, name='keep_alive'),
 ]

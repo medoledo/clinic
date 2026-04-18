@@ -10,7 +10,7 @@ class Patient(models.Model):
 
     doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='patients')
     name = models.CharField(max_length=200)
-    phone = models.CharField(max_length=20, blank=True)
+    phone = models.CharField(max_length=20, blank=True, db_index=True)
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='male')
     notes = models.TextField(blank=True)
@@ -21,6 +21,7 @@ class Patient(models.Model):
         indexes = [
             models.Index(fields=['doctor', '-created_at'], name='patient_doctor_created_idx'),
             models.Index(fields=['name'], name='patient_name_idx'),
+            models.Index(fields=['phone'], name='patient_phone_idx'),
         ]
 
     def __str__(self):
