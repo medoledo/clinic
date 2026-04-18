@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from django.core.paginator import Paginator
 from django.db.models import Count, Max, Q
+from django.db import transaction
 from django.views.decorators.http import require_GET, require_POST
 from django.core.cache import cache
 from django.contrib.auth.decorators import login_required
@@ -15,6 +16,9 @@ from django.contrib.auth.decorators import login_required
 from accounts.decorators import doctor_required
 from .models import Patient, Visit, VisitFile, MedicalDictionary, TranscriptionCorrection
 from .utils import apply_personal_corrections, find_suggestions, regex_parse_transcript
+
+import logging
+logger = logging.getLogger('patients')
 
 
 # ─────────────────────────── Constants ────────────────────────────────────────
@@ -335,7 +339,8 @@ def add_visit(request, pk):
 
         visit.next_checkup_date = _safe_date(request.POST.get('next_checkup_date'))
 
-        visit.save()
+        with transaction.atomic():
+            visit.save()
 
         # ── File uploads ─────────────────────────────────────────────────────
         titles = request.POST.getlist('file_title')
@@ -480,7 +485,8 @@ def edit_visit(request, pk):
 
         visit.next_checkup_date = _safe_date(request.POST.get('next_checkup_date'))
 
-        visit.save()
+        with transaction.atomic():
+            visit.save()
 
         # Handle new files/links...
         titles = request.POST.getlist('file_title')
@@ -489,10 +495,25 @@ def edit_visit(request, pk):
         files = request.FILES.getlist('visit_files')
 
         valid_file_types = {ft[0] for ft in VisitFile.FILE_TYPE_CHOICES}
-        
+        file_errors = []
+
         for i, f in enumerate(files):
+            # Extension check — same validation as add_visit
+            if '.' not in f.name:
+                file_errors.append(f'"{f.name}": File has no extension.')
+                continue
+            ext = '.' + f.name.rsplit('.', 1)[-1].lower()
+            if ext not in ALLOWED_EXTENSIONS:
+                file_errors.append(f'"{f.name}": Only JPG, PNG, and PDF files are allowed.')
+                continue
+            # Size check
+            if f.size > MAX_FILE_SIZE:
+                file_errors.append(f'"{f.name}": File too large. Maximum size is 10 MB.')
+                continue
             title = (titles[i] if i < len(titles) else '').strip() or f.name
             ftype = file_types[i] if i < len(file_types) else 'other'
+            if ftype not in valid_file_types:
+                ftype = 'other'
             fnotes = (file_notes_list[i] if i < len(file_notes_list) else '').strip()
             VisitFile.objects.create(visit=visit, doctor=request.user, title=title, file_type=ftype, file=f, notes=fnotes or None)
 
@@ -508,6 +529,9 @@ def edit_visit(request, pk):
             ftype = link_types[i] if i < len(link_types) else 'other'
             fnotes = (link_notes[i] if i < len(link_notes) else '').strip()
             VisitFile.objects.create(visit=visit, doctor=request.user, title=title, file_type=ftype, link_url=link, notes=fnotes or None)
+
+        for err in file_errors:
+            messages.warning(request, err)
 
         messages.success(request, 'Visit updated successfully.')
         return redirect('visit_detail', pk=visit.pk)
@@ -615,24 +639,27 @@ def upcoming_visits(request):
         .distinct()
     )
 
-    # Get the actual Visit objects for each patient so we can show checkup details
+    # Build visit maps with 2 bulk queries instead of N+1 per-patient queries
+    # Fetch all matching visits for today at once, then pick latest per patient in Python
+    raw_today = (
+        Visit.objects.filter(doctor=request.user, next_checkup_date=today)
+        .select_related('patient')
+        .order_by('patient_id', '-visit_date')
+    )
     today_visits_map = {}
-    for patient in today_checkups:
-        visit = Visit.objects.filter(
-            patient=patient,
-            next_checkup_date=today,
-        ).order_by('-visit_date').first()
-        if visit:
-            today_visits_map[patient.id] = visit
+    for v in raw_today:
+        if v.patient_id not in today_visits_map:
+            today_visits_map[v.patient_id] = v
 
+    raw_tomorrow = (
+        Visit.objects.filter(doctor=request.user, next_checkup_date=tomorrow)
+        .select_related('patient')
+        .order_by('patient_id', '-visit_date')
+    )
     tomorrow_visits_map = {}
-    for patient in tomorrow_checkups:
-        visit = Visit.objects.filter(
-            patient=patient,
-            next_checkup_date=tomorrow,
-        ).order_by('-visit_date').first()
-        if visit:
-            tomorrow_visits_map[patient.id] = visit
+    for v in raw_tomorrow:
+        if v.patient_id not in tomorrow_visits_map:
+            tomorrow_visits_map[v.patient_id] = v
 
     context = {
         'today_checkups': today_checkups,
@@ -669,6 +696,39 @@ def check_suggestions(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+
+
+# ─────────────────────────── Batch Suggestions ────────────────────────────────
+
+@doctor_required
+@require_POST
+def check_suggestions_batch(request):
+    """
+    Receives multiple field texts in one request.
+    Returns suggestions for all fields in a single response (replaces 8 sequential calls).
+    """
+    try:
+        data = json.loads(request.body)
+        texts = data.get('texts', {})
+        if not texts:
+            return JsonResponse({'error': 'No texts provided'}, status=400)
+
+        results = {}
+        for field_id, text in texts.items():
+            text = (text or '').strip()
+            if len(text) < 3:
+                results[field_id] = {'corrected_text': text, 'suggestions': []}
+                continue
+            corrected_text, suggestions = find_suggestions(text, request.user)
+            results[field_id] = {
+                'corrected_text': corrected_text,
+                'suggestions': suggestions,
+            }
+
+        return JsonResponse({'success': True, 'results': results})
+    except Exception as e:
+        logger.error(f'check_suggestions_batch failed: {e}')
+        return JsonResponse({'error': str(e)}, status=500)
 
 # ─────────────────────────── Save Correction ──────────────────────────────────
 
@@ -749,7 +809,7 @@ Parse the transcript and extract content for these fields:
 - blood_pressure: triggered by (ضغط، الضغط). Extract as text (e.g. 120/80).
 - pulse: triggered by (نبض، النبض، دقات القلب). Extract only the number.
 - weight: triggered by (وزن، الوزن). Extract only the number.
-- next_checkup_date: triggered by (استشارة، موعد القادم، استشارة بعد، استشارة في). Format: YYYY-MM-DD. (IMPORTANT: Must be in YYYY-MM-DD format, e.g., 2026-12-31. If you hear "after 2 weeks", calculate the date from today which is 2026-04-12)
+- next_checkup_date: triggered by (استشارة، موعد القادم، استشارة بعد، استشارة في). Format: YYYY-MM-DD. (IMPORTANT: Must be in YYYY-MM-DD format, e.g., 2026-12-31. If you hear "after 2 weeks", calculate the date from today which is {TODAY})
 
 Rules:
 - Extract ONLY what the doctor said for each field, nothing else
@@ -811,6 +871,7 @@ def transcribe_and_parse(request):
             return JsonResponse({'error': 'Empty transcript'}, status=400)
 
         # Apply personal learned corrections before parsing
+        logger.info(f'Transcription completed for doctor {request.user.id} — {len(raw_transcript)} chars')
         raw_transcript = apply_personal_corrections(raw_transcript, request.user)
 
         # Step 2: Parse with Multi-Layer Fallback
@@ -822,7 +883,7 @@ def transcribe_and_parse(request):
             completion = groq_client.chat.completions.create(
                 model="llama-3.1-8b-instant",
                 messages=[
-                    {"role": "system", "content": f"{PARSE_SYSTEM_PROMPT}\n\nIMPORTANT: Output ONLY a valid JSON object."},
+                    {"role": "system", "content": f"{PARSE_SYSTEM_PROMPT.replace('{TODAY}', timezone.now().date().isoformat())}\n\nIMPORTANT: Output ONLY a valid JSON object."},
                     {"role": "user", "content": f"Parse this medical transcript into fields:\n\n{raw_transcript}"}
                 ],
                 temperature=0.0,
@@ -834,6 +895,7 @@ def transcribe_and_parse(request):
             
         except Exception as groq_err:
             # Groq parse failed: fall back to local regex (no OpenAI)
+            logger.error(f'Groq parse failed for doctor {request.user.id}: {groq_err}')
             parsed_fields = regex_parse_transcript(raw_transcript)
             fallback_used = True
 

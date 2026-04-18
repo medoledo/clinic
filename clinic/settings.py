@@ -17,11 +17,11 @@ GROQ_API_KEY = config('GROQ_API_KEY', default='')
 
 # ─── SECURITY ──────────────────────────────────────────────────────────────────
 # IMPORTANT: Override this in production via environment variable!
-SECRET_KEY = 'django-insecure-($9zn(m@m6_kdgh-8v+54qm8o+h1o9cc-dx-y+^y27f*b(*$&l'
+SECRET_KEY = config('SECRET_KEY')
 
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=lambda v: [s.strip() for s in v.split(',')])
 
 # Security headers — safe to enable in both dev and prod
 SECURE_BROWSER_XSS_FILTER = True          # X-XSS-Protection header
@@ -31,10 +31,15 @@ CSRF_COOKIE_HTTPONLY = True               # JS cannot read CSRF cookie
 CSRF_COOKIE_SAMESITE = 'Lax'             # CSRF cookie sameSite policy
 SESSION_COOKIE_HTTPONLY = True            # JS cannot read session cookie
 SESSION_COOKIE_SAMESITE = 'Lax'          # Session cookie sameSite policy
-# Set these to True in production (requires HTTPS):
-# SECURE_SSL_REDIRECT = True
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
+# Production-only HTTPS / security settings
+# Only activate when DEBUG=False (i.e. in production)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000          # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 # Upload limits (10 MB per file, 20 MB form body max)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024   # 20 MB
@@ -136,6 +141,72 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 
+
+# ─── LOGGING ──────────────────────────────────────────────────────────────────
+import logging.handlers  # noqa: E402 — needed for RotatingFileHandler reference
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'meditrack.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB per file
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'level': 'WARNING',
+        },
+        'error_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'errors.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB per file
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'level': 'ERROR',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console', 'error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'patients': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'accounts': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
 # ─── SESSION ───────────────────────────────────────────────────────────────────
 SESSION_COOKIE_AGE = 60 * 60 * 24          # 1 day default
 SESSION_SAVE_EVERY_REQUEST = True

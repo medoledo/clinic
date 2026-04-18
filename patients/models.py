@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 
 
 class Patient(models.Model):
@@ -79,6 +81,9 @@ class Visit(models.Model):
             models.Index(fields=['patient', '-visit_date'], name='visit_patient_date_idx'),
             # Covers date-range analytics queries
             models.Index(fields=['visit_date'], name='visit_date_idx'),
+            # Covers upcoming_visits view filter — avoids full table scan
+            models.Index(fields=['next_checkup_date'], name='visit_checkup_date_idx'),
+            models.Index(fields=['doctor', 'next_checkup_date'], name='visit_doctor_checkup_idx'),
         ]
 
     def __str__(self):
@@ -98,10 +103,6 @@ class Visit(models.Model):
             return any(f.link_url for f in self.files.all())
         return self.files.filter(link_url__isnull=False).exclude(link_url='').exists()
 
-
-    @property
-    def has_links(self):
-        return self.files.filter(link_url__isnull=False).exclude(link_url='').exists()
     @property
     def diagnosis_summary(self):
         if self.diagnosis:
@@ -205,3 +206,14 @@ class TranscriptionCorrection(models.Model):
 
     def __str__(self):
         return f'{self.wrong_word} → {self.correct_word} ({self.usage_count}x)'
+
+
+# ─── Signal: delete physical file when VisitFile record is removed ─────────────
+@receiver(pre_delete, sender=VisitFile)
+def delete_visitfile_on_delete(sender, instance, **kwargs):
+    """
+    Fires on direct delete AND cascade delete (e.g., when Visit or Patient is deleted).
+    Removes the physical file from storage so media/ directory stays clean.
+    """
+    if instance.file:
+        instance.file.delete(save=False)

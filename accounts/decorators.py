@@ -1,7 +1,6 @@
 from functools import wraps
 from django.shortcuts import redirect
 from django.contrib.auth import logout
-from django.http import JsonResponse
 from .models import UserProfile
 
 
@@ -44,18 +43,3 @@ def admin_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapper
 
-
-def post_required(view_func):
-    """
-    Require HTTP POST for state-mutating endpoints.
-    Returns a 405 JSON response for non-POST requests.
-    """
-    @wraps(view_func)
-    def wrapper(request, *args, **kwargs):
-        if request.method != 'POST':
-            return JsonResponse(
-                {'success': False, 'message': 'Method not allowed.'},
-                status=405,
-            )
-        return view_func(request, *args, **kwargs)
-    return wrapper

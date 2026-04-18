@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
+from django.core.cache import cache
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -35,16 +36,24 @@ def login_view(request):
             messages.error(request, 'Username and password are required.')
             return render(request, 'accounts/login.html')
 
-        try:
-            temp_user = User.objects.get(username=username)
-            if not temp_user.is_active and temp_user.check_password(password):
-                messages.error(request, "Your account is currently inactive. Contact the administration.")
-                return render(request, 'accounts/login.html')
-        except User.DoesNotExist:
-            pass
+        # H7: IP-based rate limiting — max 5 failed attempts per 60 seconds
+        ip = request.META.get('REMOTE_ADDR', 'unknown')
+        rate_key = f'login_attempts_{ip}'
+        attempts = cache.get(rate_key, 0)
+        if attempts >= 5:
+            messages.error(request, 'Too many failed login attempts. Please wait 60 seconds before trying again.')
+            return render(request, 'accounts/login.html')
 
+        # H5: Use authenticate() only — no pre-check that reveals if username exists
         user = authenticate(request, username=username, password=password)
         if user is not None:
+            if not user.is_active:
+                # Inactive account — generic message; no enumeration risk here since
+                # we only reach this after successful password verification internally
+                messages.error(request, 'Your account is inactive. Contact administration.')
+                cache.set(rate_key, attempts + 1, timeout=60)
+                return render(request, 'accounts/login.html')
+            cache.delete(rate_key)   # Reset counter on successful login
             login(request, user)
             try:
                 role = user.profile.role
@@ -57,6 +66,7 @@ def login_view(request):
             messages.error(request, 'No role assigned to your account. Contact admin.')
             logout(request)
         else:
+            cache.set(rate_key, attempts + 1, timeout=60)
             messages.error(request, 'Invalid username or password.')
 
     return render(request, 'accounts/login.html')

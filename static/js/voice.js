@@ -10,6 +10,7 @@ let isOfflineMode = false;
 const TRANSCRIBE_URL = '/transcribe-visit/';
 const SUGGESTIONS_URL = '/check-suggestions/';
 const SAVE_CORRECTION_URL = '/save-correction/';
+const SUGGESTIONS_BATCH_URL = '/check-suggestions-batch/';
 
 // --- i18n strings from template data attributes ---
 const recorderContainer = document.querySelector('.visit-recorder');
@@ -180,13 +181,29 @@ function showSuggestionPopup(fieldEl, originalWord, suggestedWord, onConfirm) {
 
     const popup = document.createElement('div');
     popup.className = 'suggestion-popup';
-    popup.innerHTML = `
-        <span class="suggestion-popup__text">
-            ${STRINGS.suggest} <strong>${suggestedWord}</strong> ${STRINGS.instead} "${originalWord}"؟
-        </span>
-        <button class="suggestion-popup__yes" type="button">${STRINGS.yes}</button>
-        <button class="suggestion-popup__no" type="button">${STRINGS.no}</button>
-    `;
+
+    // H2: Safe DOM construction — no innerHTML with user/DB data
+    const textSpan = document.createElement('span');
+    textSpan.className = 'suggestion-popup__text';
+    const strong = document.createElement('strong');
+    strong.textContent = suggestedWord;           // safe — textContent only
+    textSpan.appendChild(document.createTextNode((STRINGS.suggest || '\u0647\u0644 \u062A\u0642\u0635\u062F') + ': '));
+    textSpan.appendChild(strong);
+    textSpan.appendChild(document.createTextNode(' ' + (STRINGS.instead || '\u0628\u062F\u0644\u0627\u064B \u0645\u0646') + ' "' + originalWord + '"\u061F'));
+
+    const yesBtn = document.createElement('button');
+    yesBtn.className = 'suggestion-popup__yes';
+    yesBtn.type = 'button';
+    yesBtn.textContent = STRINGS.yes || '\u2713 \u0646\u0639\u0645';
+
+    const noBtn = document.createElement('button');
+    noBtn.className = 'suggestion-popup__no';
+    noBtn.type = 'button';
+    noBtn.textContent = STRINGS.no || '\u2717 \u0644\u0627';
+
+    popup.appendChild(textSpan);
+    popup.appendChild(yesBtn);
+    popup.appendChild(noBtn);
 
     // Position popup near the field
     const rect = fieldEl.getBoundingClientRect();
@@ -198,15 +215,8 @@ function showSuggestionPopup(fieldEl, originalWord, suggestedWord, onConfirm) {
     document.body.appendChild(popup);
     activePopup = popup;
 
-    popup.querySelector('.suggestion-popup__yes').addEventListener('click', () => {
-        onConfirm(true);
-        closeActivePopup();
-    });
-
-    popup.querySelector('.suggestion-popup__no').addEventListener('click', () => {
-        onConfirm(false);
-        closeActivePopup();
-    });
+    yesBtn.addEventListener('click', () => { onConfirm(true);  closeActivePopup(); });
+    noBtn.addEventListener('click',  () => { onConfirm(false); closeActivePopup(); });
 
     // Auto-close after 8 seconds
     setTimeout(closeActivePopup, 8000);
@@ -259,43 +269,45 @@ async function processSuggestions(suggestions, fieldId) {
 }
 
 async function checkAllFieldsForSuggestions(fields) {
-    // Check each populated field for suggestions
-    const fieldIds = Object.keys(fields).filter(k => fields[k] && fields[k].trim());
-
-    for (const fieldId of fieldIds) {
-        const text = fields[fieldId];
-        if (!text || text.trim().length < 3) continue;
-
-        try {
-            const response = await fetch(SUGGESTIONS_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': CSRF_TOKEN
-                },
-                body: JSON.stringify({ text: text })  // send FULL field text, not individual words
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                // Apply auto-corrections silently first
-                if (data.corrected_text && data.corrected_text !== text) {
-                    const fieldEl = document.getElementById(fieldId);
-                    if (fieldEl) {
-                        fieldEl.value = data.corrected_text;
-                        fieldEl.dispatchEvent(new Event('input'));
-                    }
-                }
-
-                // Then show popup suggestions for remaining uncertain words
-                if (data.suggestions && data.suggestions.length > 0) {
-                    await processSuggestions(data.suggestions, fieldId);
-                }
-            }
-        } catch (err) {
-            console.error('Suggestion check failed for field', fieldId, err);
+    // M6: Single batched request instead of N sequential requests
+    const texts = {};
+    for (const [fieldId, text] of Object.entries(fields)) {
+        if (text && text.trim().length >= 3) {
+            texts[fieldId] = text.trim();
         }
+    }
+    if (Object.keys(texts).length === 0) return;
+
+    try {
+        const response = await fetch(SUGGESTIONS_BATCH_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN
+            },
+            body: JSON.stringify({ texts })
+        });
+
+        const data = await response.json();
+        if (!data.success) return;
+
+        for (const [fieldId, result] of Object.entries(data.results)) {
+            const fieldEl = document.getElementById(fieldId);
+            if (!fieldEl) continue;
+
+            // Apply auto-corrections silently first
+            if (result.corrected_text && result.corrected_text !== texts[fieldId]) {
+                fieldEl.value = result.corrected_text;
+                fieldEl.dispatchEvent(new Event('input'));
+            }
+
+            // Then show popup suggestions
+            if (result.suggestions && result.suggestions.length > 0) {
+                await processSuggestions(result.suggestions, fieldId);
+            }
+        }
+    } catch (err) {
+        console.error('Batch suggestion check failed:', err);
     }
 }
 
@@ -390,4 +402,19 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(resetStatusUI, 3000);
         }
     });
+
+    // H3: Expose toggle function for Ctrl+M keyboard shortcut (shortcuts.js)
+    window._voiceToggle = function () {
+        if (!isRecording && !isOfflineMode) {
+            if (!navigator.onLine) {
+                setStatus('Connect to the internet first', 'error');
+            } else {
+                startRecording();
+            }
+        } else if (isRecording) {
+            stopRecording();
+        } else if (isOfflineMode) {
+            stopOfflineRecording();
+        }
+    };
 });

@@ -5,6 +5,9 @@ from django.conf.urls.static import static
 from django.shortcuts import redirect
 from django.views.generic import TemplateView
 
+handler404 = 'clinic.views.handler404'
+handler500 = 'clinic.views.handler500'
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('sw.js', TemplateView.as_view(template_name='sw.js', content_type='application/javascript'), name='service_worker'),

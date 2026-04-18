@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import UserProfile, DoctorProfile, AdminProfile
+from .models import UserProfile, DoctorProfile
 
 
 class UserProfileInline(admin.StackedInline):
@@ -18,14 +18,9 @@ class DoctorProfileInline(admin.StackedInline):
     fields = ('full_name', 'specialization', 'phone')
 
 
-class AdminProfileInline(admin.StackedInline):
-    model = AdminProfile
-    can_delete = False
-    verbose_name_plural = 'Admin Profile'
-
 
 class UserAdmin(BaseUserAdmin):
-    inlines = (UserProfileInline, DoctorProfileInline, AdminProfileInline)
+    inlines = (UserProfileInline, DoctorProfileInline)
     list_display = ('username', 'email', 'get_role', 'is_active', 'is_staff', 'date_joined')
     list_filter = ('is_active', 'is_staff', 'date_joined')
     search_fields = ('username', 'email', 'first_name', 'last_name')
@@ -64,9 +59,3 @@ class DoctorProfileAdmin(admin.ModelAdmin):
     list_select_related = True
     show_full_result_count = False
 
-
-@admin.register(AdminProfile)
-class AdminProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'created_at')
-    readonly_fields = ('created_at',)
-    list_select_related = True

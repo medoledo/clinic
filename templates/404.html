@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}404 - Page Not Found{% endblock %}
+{% block content %}
+<div style="text-align:center; padding: 80px 20px; direction: rtl;">
+    <div style="font-size: 96px; font-weight: 900; opacity: 0.15; line-height: 1;">404</div>
+    <h1 style="margin-top: -20px; font-size: 24px;">الصفحة غير موجودة</h1>
+    <p style="opacity: 0.6; margin: 12px 0 32px;">ربما تم نقل الصفحة أو حذفها.</p>
+    <a href="{% url 'dashboard' %}" style="padding: 12px 28px; background: var(--primary, #2563eb); color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600;">
+        العودة للرئيسية
+    </a>
+</div>
+{% endblock %}

@@ -63,3 +63,5 @@ npm-debug.log
 .DS_Store
 *.bak
 *.tmp
+# Log directory
+logs/

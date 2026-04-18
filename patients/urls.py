@@ -21,4 +21,5 @@ urlpatterns = [
     path('transcribe-patient/', views.transcribe_patient_info, name='transcribe_patient'),
     path('check-suggestions/', views.check_suggestions, name='check_suggestions'),
     path('save-correction/', views.save_correction, name='save_correction'),
+    path('check-suggestions-batch/', views.check_suggestions_batch, name='check_suggestions_batch'),
 ]
