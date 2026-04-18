@@ -38,6 +38,6 @@
   </div>
   {% endfor %}
 
-  <div class="text-xs text-muted text-center pt-2">Checked at {{ request.session._session_key|default:"now" }} &mdash; <a href="?format=json" class="text-primary hover:underline">JSON</a></div>
+  <div class="text-xs text-muted text-center pt-2">Checked at {{ request.session.session_key|default:"now" }} &mdash; <a href="?format=json" class="text-primary hover:underline">JSON</a></div>
 </div>
 {% endblock %}
