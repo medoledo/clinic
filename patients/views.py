@@ -272,7 +272,11 @@ def _fill_patient_from_post(patient, post):
         return 'Patient name is required.'
 
     patient.name = name
-    patient.phone = post.get('phone', '').strip()[:20]
+    phone_val = post.get('phone', '').strip()
+    if phone_val:
+        if not re.match(r'^01\d{9}$', phone_val):
+            return "Phone number must be exactly 11 digits and start with '01'."
+    patient.phone = phone_val
     dob = post.get('date_of_birth', '').strip()
     if dob:
         parsed_dob = parse_date(dob)

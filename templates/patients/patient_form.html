@@ -97,7 +97,7 @@
             <div>
                 <label class="form-label">Phone Number</label>
                 <input name="phone" type="tel" id="phone" class="form-input" value="{{ patient.phone|default:'' }}"
-                    placeholder="e.g. 01012345678" />
+                    placeholder="e.g. 01012345678" pattern="^01[0-9]{9}$" maxlength="11" minlength="11" title="Phone number must be exactly 11 digits and start with 01" />
             </div>
             <div>
                 <label class="form-label">Date of Birth</label>
