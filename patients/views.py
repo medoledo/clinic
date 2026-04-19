@@ -332,6 +332,8 @@ def add_visit(request, pk):
         # Parse visit date safely
         visit_date_str = request.POST.get('visit_date', '').strip()
         visit_date = parse_datetime(visit_date_str) if visit_date_str else None
+        if visit_date and timezone.is_naive(visit_date):
+            visit_date = timezone.make_aware(visit_date)
         if visit_date is None:
             visit_date = timezone.now()
 
@@ -485,7 +487,10 @@ def edit_visit(request, pk):
         visit_date_str = request.POST.get('visit_date', '').strip()
         if visit_date_str:
             parsed_date = parse_datetime(visit_date_str)
-            if parsed_date: visit.visit_date = parsed_date
+            if parsed_date:
+                if timezone.is_naive(parsed_date):
+                    parsed_date = timezone.make_aware(parsed_date)
+                visit.visit_date = parsed_date
         
         visit.chief_complaint = chief_complaint
         visit.symptoms = request.POST.get('symptoms', '').strip() or None
