@@ -211,3 +211,6 @@ LOGGING = {
 SESSION_COOKIE_AGE = 60 * 60 * 24          # 1 day default
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True     # Override per-login for remember-me
+
+# Allow massive bulk deletions in Django Admin
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 102400
