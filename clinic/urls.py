@@ -8,7 +8,14 @@ from django.views.generic import TemplateView
 handler404 = 'clinic.views.handler404'
 handler500 = 'clinic.views.handler500'
 
+from django.http import HttpResponse
+
+def silence_spam(request):
+    return HttpResponse(status=204)
+
 urlpatterns = [
+    path('favicon.ico', silence_spam),
+    path('.well-known/appspecific/com.chrome.devtools.json', silence_spam),
     path('admin/', admin.site.urls),
     path('sw.js', TemplateView.as_view(template_name='sw.js', content_type='application/javascript'), name='service_worker'),
     path('', lambda request: redirect('login'), name='home'),
