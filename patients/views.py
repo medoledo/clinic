@@ -37,18 +37,29 @@ def dashboard(request):
     first_of_month = today.replace(day=1)
     doctor = request.user
 
+    from datetime import timedelta
+    import datetime
+    
+    # Pre-calculate start and end times for flawless index hits
+    today_start = timezone.make_aware(datetime.datetime.combine(today, datetime.time.min))
+    today_end = today_start + timedelta(days=1)
+    
+    month_start = timezone.make_aware(datetime.datetime.combine(first_of_month, datetime.time.min))
+    
     cache_key = f'dashboard_counts_{doctor.id}'
     counts = cache.get(cache_key)
     if counts is None:
         counts = {
             'total_patients': Patient.objects.filter(doctor=doctor).count(),
             'today_visits': Visit.objects.filter(
-                doctor=doctor, visit_date__date=today
+                doctor=doctor, 
+                visit_date__gte=today_start,
+                visit_date__lt=today_end
             ).count(),
             'month_visits': Visit.objects.filter(
                 doctor=doctor,
-                visit_date__date__gte=first_of_month,
-                visit_date__date__lte=today,
+                visit_date__gte=month_start,
+                visit_date__lt=today_end
             ).count(),
         }
         cache.set(cache_key, counts, 60)
