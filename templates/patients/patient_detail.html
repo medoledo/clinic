@@ -309,7 +309,10 @@
         setTimeout(function () { div.remove(); }, 5000);
     }
     function openEditPatientModal(pk) {
-        fetch('/patients/' + pk + '/edit/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        fetch('/patients/' + pk + '/edit/?_' + Date.now(), {
+            cache: 'no-store',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
             .then(function (r) { return r.text(); })
             .then(function (html) {
                 document.getElementById('edit-patient-form-container').innerHTML = html;

@@ -23,11 +23,20 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=lambda v: [s.strip() for s in v.split(',')])
 
+# Prevent "CSRF token incorrect" when accessing from clinic workstations / local network
+# Django 4.0+ requires the origin to be trusted. We auto-build this from ALLOWED_HOSTS.
+CSRF_TRUSTED_ORIGINS = []
+for host in ALLOWED_HOSTS:
+    for scheme in ('http', 'https'):
+        CSRF_TRUSTED_ORIGINS.append(f'{scheme}://{host}')
+        CSRF_TRUSTED_ORIGINS.append(f'{scheme}://{host}:8000')
+        CSRF_TRUSTED_ORIGINS.append(f'{scheme}://{host}:8080')
+
 # Security headers — safe to enable in both dev and prod
 SECURE_BROWSER_XSS_FILTER = True          # X-XSS-Protection header
 SECURE_CONTENT_TYPE_NOSNIFF = True        # X-Content-Type-Options: nosniff
 X_FRAME_OPTIONS = 'DENY'                  # Clickjacking protection
-CSRF_COOKIE_HTTPONLY = True               # JS cannot read CSRF cookie
+CSRF_COOKIE_HTTPONLY = False              # JS must read CSRF cookie for AJAX requests
 CSRF_COOKIE_SAMESITE = 'Lax'             # CSRF cookie sameSite policy
 SESSION_COOKIE_HTTPONLY = True            # JS cannot read session cookie
 SESSION_COOKIE_SAMESITE = 'Lax'          # Session cookie sameSite policy

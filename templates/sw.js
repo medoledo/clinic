@@ -29,6 +29,16 @@ self.addEventListener('fetch', event => {
     const req = event.request;
     if (req.method !== 'GET') return;
 
+    const url = new URL(req.url);
+
+    // NEVER cache API calls — always fetch fresh data from server
+    if (url.pathname.startsWith('/search-patients/') ||
+        url.pathname.startsWith('/api/') ||
+        url.pathname.startsWith('/keep-alive/')) {
+        event.respondWith(fetch(req));
+        return;
+    }
+
     // HTML / pages: Network First, fallback to offline UI if we had one
     if (req.headers.get('accept').includes('text/html')) {
         event.respondWith(

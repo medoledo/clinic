@@ -29,6 +29,11 @@ ALLOWED_EXTENSIONS = frozenset(['.jpg', '.jpeg', '.png', '.pdf'])
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
+def _clear_dashboard_cache(doctor_id):
+    """Invalidate cached dashboard counts whenever patient/visit data changes."""
+    cache.delete(f'dashboard_counts_{doctor_id}')
+
+
 # ─────────────────────────── Dashboard ────────────────────────────────────────
 
 @doctor_required
@@ -69,7 +74,11 @@ def dashboard(request):
         'today_visits': counts['today_visits'],
         'month_visits': counts['month_visits'],
     }
-    return render(request, 'patients/dashboard.html', context)
+    response = render(request, 'patients/dashboard.html', context)
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 # ─────────────────────────── AJAX Search ─────────────────────────────────────
@@ -102,7 +111,11 @@ def search_patients(request):
                 ),
             })
 
-    return JsonResponse({'results': results, 'query': query})
+    response = JsonResponse({'results': results, 'query': query})
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 # ─────────────────────────── Patient List ─────────────────────────────────────
@@ -206,6 +219,7 @@ def add_patient(request):
             if error:
                 return JsonResponse({'success': False, 'message': error})
             patient.save()
+            _clear_dashboard_cache(request.user.id)
             return JsonResponse({
                 'success': True,
                 'message': f'Patient "{patient.name}" added successfully.',
@@ -221,11 +235,14 @@ def add_patient(request):
             messages.error(request, error)
             return render(request, 'patients/patient_form.html', {'action': 'Add', 'patient': None})
         patient.save()
+        _clear_dashboard_cache(request.user.id)
         messages.success(request, f'Patient "{patient.name}" added successfully.')
         return redirect('patient_detail', pk=patient.pk)
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return render(request, 'patients/patient_form.html', {'action': 'Add', 'patient': None})
+        response = render(request, 'patients/patient_form.html', {'action': 'Add', 'patient': None})
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        return response
 
     return render(request, 'patients/patient_form.html', {'action': 'Add', 'patient': None})
 
@@ -240,6 +257,7 @@ def edit_patient(request, pk):
             if error:
                 return JsonResponse({'success': False, 'message': error})
             patient.save()
+            _clear_dashboard_cache(request.user.id)
             return JsonResponse({
                 'success': True,
                 'message': f'Patient "{patient.name}" updated.',
@@ -254,11 +272,14 @@ def edit_patient(request, pk):
             messages.error(request, error)
             return render(request, 'patients/patient_form.html', {'action': 'Edit', 'patient': patient})
         patient.save()
+        _clear_dashboard_cache(request.user.id)
         messages.success(request, f'Patient "{patient.name}" updated.')
         return redirect('patient_detail', pk=patient.pk)
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return render(request, 'patients/patient_form.html', {'action': 'Edit', 'patient': patient})
+        response = render(request, 'patients/patient_form.html', {'action': 'Edit', 'patient': patient})
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        return response
 
     return render(request, 'patients/patient_form.html', {'action': 'Edit', 'patient': patient})
 
@@ -269,6 +290,7 @@ def delete_patient(request, pk):
     if request.method == 'POST':
         name = patient.name
         patient.delete()
+        _clear_dashboard_cache(request.user.id)
         return JsonResponse({'success': True, 'message': f'Patient "{name}" deleted.'})
     return JsonResponse({'success': False, 'message': 'Method not allowed.'}, status=405)
 
@@ -369,6 +391,7 @@ def add_visit(request, pk):
 
         with transaction.atomic():
             visit.save()
+        _clear_dashboard_cache(request.user.id)
 
         # ── File uploads ─────────────────────────────────────────────────────
         titles = request.POST.getlist('file_title')
@@ -518,6 +541,7 @@ def edit_visit(request, pk):
 
         with transaction.atomic():
             visit.save()
+        _clear_dashboard_cache(request.user.id)
 
         # Handle new files/links...
         titles = request.POST.getlist('file_title')
@@ -615,6 +639,7 @@ def delete_visit(request, pk):
     patient_pk = visit.patient_id
     if request.method == 'POST':
         visit.delete()
+        _clear_dashboard_cache(request.user.id)
         return JsonResponse({'success': True, 'message': 'Visit deleted successfully.'})
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 

@@ -19,7 +19,10 @@
             return;
         }
 
-        fetch(`/search-patients/?q=${encodeURIComponent(query)}`)
+        fetch(`/search-patients/?q=${encodeURIComponent(query)}&_=${Date.now()}`, {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+            })
             .then(r => r.json())
             .then(data => {
                 currentResults = data.results || [];
